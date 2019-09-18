@@ -298,7 +298,7 @@ for i in range(epoch):
     layer_h_deltas = np.zeros(hidden_dim)
     while(index+batch_dim<=trainX.shape[0]):
         X = trainX[index:index+batch_dim,:]
-        Y = trainY[index:index+batch_dim,:]
+        Y = trainY[index:index+batch_dim]
         index = index+batch_dim
 
         # forward passs -> input to hidden
@@ -309,13 +309,13 @@ for i in range(epoch):
         layer_2_value.append(layer_2)
     
         #hitung error output
-        layer_2_error = layer_2 - Y
+        layer_2_error = Y - layer_2
     
         #layer 2 deltas
         layer_2_delta = layer_2_error*dtanh(layer_2)
     
         #layer 1 delta
-        layer_1_delta = (np.multiply(layer_h_deltas,synapse_h.T) + np.multiply(layer_2_delta,synapse_1.T)) * dtanh(layer_1)
+        layer_1_delta = (np.dot(layer_h_deltas,synapse_h.T) + np.dot(layer_2_delta,synapse_1.T)) * dtanh(layer_1)
     
         #calculate weight update
         synapse_1_update = np.dot(np.atleast_2d(layer_1).T,(layer_2_delta))

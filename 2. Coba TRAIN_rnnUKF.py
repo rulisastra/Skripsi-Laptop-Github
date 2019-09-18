@@ -14,7 +14,6 @@ data = pd.read_csv('data.csv',usecols=[1],
                     names=['date','value'] )
 data = data.values
 data = data.astype('float32')
-print(data)
 
 #normalisasi duluan
 def normalize(data,scale):
@@ -71,8 +70,14 @@ np.random.seed(4)
 def tanh(x):
     return (1-np.exp(-2*x))/(1+np.exp(-2*x))
 
+tanh_ = tanh()
+print(tanh_)
+
 def dtanh(x):
     return (1-tanh(x)**2)
+
+dtanh_ = dtanh()
+print(dtanh_)
 
 #inisialisasi random BOBOOOTT awal JST
 synapse_0 = 2*np.random.random((input_dim,hidden_dim)) - 1 #inisialisasi
@@ -110,11 +115,11 @@ layer_1 = tanh(np.dot(trainX,synapse_0) +
 layer_2 = tanh(np.dot(layer_1,synapse_1)) #di output layer (sbg yo di paper)
 
 #update bobot (GAPERLU)
-layer_2_error = layer_2 - trainY #nilai error dari prediksi buat jacobian
+layer_2_error = trainY - layer_2 #nilai error dari prediksi buat jacobian
 layer_2_delta = layer_2_error*dtanh(layer_2)
 
 layer_1_delta = (np.dot(layer_h_deltas,synapse_h.T) + 
-                 np.dot(np.reshape(layer_2_delta,-1,1),synapse_1.T)) * dtanh(layer_1)
+                 np.dot(layer_2_delta,synapse_1.T)) * dtanh(layer_1)
 
 # layer_1_delta = (np.dot(layer_h_deltas,synapse_h.T) +
 #                  np.multiply(layer_2_delta,synapse_1.T))*dtanh(layer_1)
@@ -293,7 +298,7 @@ for i in range(epoch):
     layer_h_deltas = np.zeros(hidden_dim)
     while(index+batch_dim<=trainX.shape[0]):
         X = trainX[index:index+batch_dim,:]
-        Y = trainY[index:index+batch_dim,:]
+        Y = trainY[index:index+batch_dim]
         index = index+batch_dim
 
         #input to hidden
@@ -304,7 +309,7 @@ for i in range(epoch):
         layer_2_value.append(layer_2)
     
         #hitung error output
-        layer_2_error = layer_2 - Y
+        layer_2_error = Y - layer_2
     
         #layer 2 deltas
         layer_2_delta = layer_2_error*dtanh(layer_2)
