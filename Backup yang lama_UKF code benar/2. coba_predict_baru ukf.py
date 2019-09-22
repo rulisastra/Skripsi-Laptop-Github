@@ -1,23 +1,6 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import time
-from numpy.linalg import inv
-
-def pisahData(data,a,b):
-     if((a+b)!=1):
-            print("pemisahan tidak valid")
-     else:
-        train = []
-        test = []
-        train_size = int(len(normalized)*a)
-        train = normalized[0:train_size-1]
-        test = normalized[train_size-1:len(normalized)]
-     return np.array(train),np.array(test)
-
-train_data, test_data = pisahData(normalized, 0.7, 0.3)
-train_data = train_data.reshape(-1,1) #reshape data dengan range -1,1
-test_data = test_data.reshape(-1,1)
 
 def normalize(data, scale):
     normalized = []
@@ -79,7 +62,13 @@ def dstat(x,y):
     Dstat = (1/float(n-1))*float(dstat)*100
     return float(Dstat)
 
-data_coba = pd.read_csv('data.csv', engine='python', delimiter=';', decimal=",", header=None, names=['date','value'])
+data_coba = pd.read_csv('data_coba_1bulan.csv',usecols=[1],
+                        engine='python',
+                        delimiter=',',
+                        decimal=".",
+                        thousands=',',
+                        header=None,
+                        names=['date','value'] )
 data_coba['value'] = data_coba['value'].values
 data_coba['value'] = data_coba['value'].astype('float32')
 coba_data_raw = data_coba['value'].values.reshape(-1,1)
