@@ -26,7 +26,7 @@ for i in range(largest_number):
 # input variables
 alpha = 0.1
 input_dim = 2
-hidden_dim = 16
+hidden_dim = 6
 output_dim = 1
 
 

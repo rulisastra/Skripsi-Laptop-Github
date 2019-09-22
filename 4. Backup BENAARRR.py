@@ -384,48 +384,50 @@ plt.ylabel('Loss (MSE)')
 plt.legend()
 plt.show()
 
-#%% 
-
-#coba predict
-
-batch_predict = testX.shape[0]
-context_layer_p = np.full((batch_predict,hidden_dim),0)
-y_pred = []
-index = 0
-while(index+batch_predict<=testX.shape[0]):
-    X = testX[index:index+batch_predict,:]
-    layer_1p = tanh(np.dot(X,synapse_0)+np.dot(context_layer_p,synapse_h))
-    layer_2p = tanh(np.dot(layer_1p,synapse_1))
-    y_pred.append(layer_2p)
-    context_layer_p = layer_1p
-    index = index+batch_predict
-    
-y_pred = denormalize(np.reshape(y_pred,(-1,1)), data['value'], (-1,1))
-testY = denormalize(testY, data['value'], (-1,1))
-mse_pred = mse(testY,y_pred)
-rmse_pred = rmse(testY,y_pred)
-mae_pred = mae(testY,y_pred)
-dstat_pred = dstat(testY,y_pred)
-scoring = [mse_pred,rmse_pred,mae_pred,dstat_pred, run_time]
-
-plt.plot(testY, label='true')
-plt.plot(y_pred, label='prediction')
-plt.title('RNN-UKF')
-plt.legend()
-plt.show()
-print(scoring)
-
-plt.plot(testY[0:50], label='true')
-plt.plot(y_pred[0:50], label='prediction')
-plt.title('RNN-UKF')
-plt.legend()
-plt.show()
-
-#%%
-np.savetxt('bobot_input.csv', synapse_0, delimiter=',')
-np.savetxt('bobot_hidden.csv', synapse_h, delimiter=',')
-np.savetxt('bobot_output.csv', synapse_1, delimiter=',')
-np.savetxt('loss_ukf.csv', mse_all, delimiter=';')
+# =============================================================================
+# #%% 
+# 
+# #coba predict
+# 
+# batch_predict = testX.shape[0]
+# context_layer_p = np.full((batch_predict,hidden_dim),0)
+# y_pred = []
+# index = 0
+# while(index+batch_predict<=testX.shape[0]):
+#     X = testX[index:index+batch_predict,:]
+#     layer_1p = tanh(np.dot(X,synapse_0)+np.dot(context_layer_p,synapse_h))
+#     layer_2p = tanh(np.dot(layer_1p,synapse_1))
+#     y_pred.append(layer_2p)
+#     context_layer_p = layer_1p
+#     index = index+batch_predict
+#     
+# y_pred = denormalize(np.reshape(y_pred,(-1,1)), data['value'], (-1,1))
+# testY = denormalize(testY, data['value'], (-1,1))
+# mse_pred = mse(testY,y_pred)
+# rmse_pred = rmse(testY,y_pred)
+# mae_pred = mae(testY,y_pred)
+# dstat_pred = dstat(testY,y_pred)
+# scoring = [mse_pred,rmse_pred,mae_pred,dstat_pred, run_time]
+# 
+# plt.plot(testY, label='true')
+# plt.plot(y_pred, label='prediction')
+# plt.title('RNN-UKF')
+# plt.legend()
+# plt.show()
+# print(scoring)
+# 
+# plt.plot(testY[0:50], label='true')
+# plt.plot(y_pred[0:50], label='prediction')
+# plt.title('RNN-UKF')
+# plt.legend()
+# plt.show()
+# 
+# #%%
+# np.savetxt('bobot_input.csv', synapse_0, delimiter=',')
+# np.savetxt('bobot_hidden.csv', synapse_h, delimiter=',')
+# np.savetxt('bobot_output.csv', synapse_1, delimiter=',')
+# np.savetxt('loss_ukf.csv', mse_all, delimiter=';')
+# =============================================================================
 
 #%%
 

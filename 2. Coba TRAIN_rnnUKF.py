@@ -70,7 +70,7 @@ np.random.seed(4)
 def tanh(x):
     return (1-np.exp(-2*x))/(1+np.exp(-2*x))
 
-tanh_ = tanh()
+tanh_ = tanh(x)
 print(tanh_)
 
 def dtanh(x):

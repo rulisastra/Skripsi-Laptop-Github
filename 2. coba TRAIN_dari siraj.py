@@ -32,6 +32,13 @@ def normalize(data,scale):
 scale = (-1,1)
 normalized = normalize(data,scale)
 
+def denormalize(normalized, data, scale):
+    denormalized = []
+    for i in range(len(normalized)):
+        a = ((normalized[i]-min(scale))*(max(data)-min(data)))/(max(scale)-min(scale))+min(data)
+        denormalized.append(a)
+    return np.array(denormalized)
+
 def pisahData(data,a,b):
      if((a+b)!=1):
             print("pemisahan tidak valid")
@@ -61,6 +68,9 @@ windowSize = 3
 trainX, trainY = createDataset(train_data,windowSize)
 testX, testY = createDataset(test_data, windowSize)
 
+def tanh(x):
+    return (1-np.exp(-2*x))/(1+np.exp(-2*x))
+
 # compute sigmoid nonlinearity
 def sigmoid(x):
     output = 1/(1+np.exp(-x))
@@ -69,7 +79,6 @@ def sigmoid(x):
 # convert output of sigmoid function to its derivative
 def sigmoid_output_to_derivative(output):
     return output*(1-output)
-
 
 # training dataset generation
 int2binary = {}
@@ -165,7 +174,6 @@ for j in range(10000):
         
         future_layer_1_delta = layer_1_delta
     
-
     synapse_0 += synapse_0_update * alpha
     synapse_1 += synapse_1_update * alpha
     synapse_h += synapse_h_update * alpha    
@@ -176,21 +184,11 @@ for j in range(10000):
     
     # print out progress
     if(j % 1000 == 0):
-        print (overallError,d,c)
-# =============================================================================
-#         print (d)
-#         print (c)
-# =============================================================================
-# =============================================================================
-#         print "Error:" + overallError
-#         print "Pred:" + d
-#         print "True:" + c
-# =============================================================================
-       
+        print ("Error:" + str(overallError))
+        print ("Pred:" + str(d))
+        print ("True:" + str(c))
         out = 0
         for index,x in enumerate(reversed(d)):
             out += x*pow(2,index)
             l = str(a_int) + " + " + str(b_int) + " = " + str(out)
             print (l)
-
-        
