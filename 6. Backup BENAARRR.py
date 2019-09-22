@@ -15,23 +15,19 @@ def pisahData(data,a,b):
         test = data[train_size-1:len(data)]
      return np.array(train),np.array(test)
 
-#normalisasi duluan
-def normalize(data,scale):
+def normalize(data, scale):
     normalized = []
     for i in range(len(data)):
-       a = (min(scale))+((data[i]-min(data))*
-              max(scale)-min(scale))/(max(data)-min(data))
-       normalized.append(a)
+        a = (min(scale))+(data[i]-min(data))*(max(scale)-min(scale))/(max(data)-min(data))
+        normalized.append(a)
     return np.array(normalized)
 
-#denorm
 def denormalize(normalized, data, scale):
     denormalized = []
     for i in range(len(normalized)):
-        a = ((normalized[i]-min(scale))*(max(data)-
-              min(data)))/(max(scale)-min(scale))+min(data)
+        a = ((normalized[i]-min(scale))*(max(data)-min(data)))/(max(scale)-min(scale))+min(data)
         denormalized.append(a)
-    return np.array(denormalize)
+    return np.array(denormalized)
 
 # =============================================================================
 # scale = (-1,1)
@@ -251,31 +247,32 @@ testY = denormalize(testY, data['value'], (-1,1))
 
 def mse(x,y):
     mse = []
-    for i in range(len(x)):
+    for i in range(len(y)):
         a = (x[i]-y[i])**2
         mse.append(a)
     mse = float((sum(mse)/len(y)))
     return mse
 
-def rmse(x,y):
-    rmse = []
-    for i in range(len(x)):
-        a = (x[i]-y[i])**2
-        mse.append(a)
-    rmse = float((sum(mse)/len(y))**0.5)
-    return rmse
 
 def mae(x,y):
     mae = []
-    for i in range(len(x)):
-        a = abs(x[i]-y[i])
+    for i in range(len(y)):
+        a = abs(y[i]-x[i])
         mae.append(a)
-    mae = float((sum(mse))/len(y))
+    mae = float(sum(mae)/len(y))
     return mae
+
+def rmse(x,y):
+    rmse = []
+    for i in range(len(y)):
+        a = (x[i]-y[i])**2
+        rmse.append(a)
+    rmse = float((sum(rmse)/len(y))**0.5)
+    return rmse
 
 def mape(x,y):
     mape = []
-    for i in range(len(x)):
+    for i in range(len(y)):
         a = abs((x[i]-y[i])/x[i])
         mape.append(a)
     mape = float((sum(mse))/len(y))*100
@@ -285,9 +282,9 @@ def dstat(x,y):
     dstat = 0
     n = len(y)
     for i in range(n-1):
-        if(((x[i+1]-y[i])*(y[i+1]-y[i]))>=0):
+        if(((x[i+1]-y[i])*(y[i+1]-y[i]))>0):
             dstat += 1
-    Dstat = (1/float(n-1))*float(dstat)*100
+    Dstat = (1/float(n-2))*float(dstat)*100
     return float(Dstat)
 
 epoch = 1270
@@ -384,50 +381,48 @@ plt.ylabel('Loss (MSE)')
 plt.legend()
 plt.show()
 
-# =============================================================================
-# #%% 
-# 
-# #coba predict
-# 
-# batch_predict = testX.shape[0]
-# context_layer_p = np.full((batch_predict,hidden_dim),0)
-# y_pred = []
-# index = 0
-# while(index+batch_predict<=testX.shape[0]):
-#     X = testX[index:index+batch_predict,:]
-#     layer_1p = tanh(np.dot(X,synapse_0)+np.dot(context_layer_p,synapse_h))
-#     layer_2p = tanh(np.dot(layer_1p,synapse_1))
-#     y_pred.append(layer_2p)
-#     context_layer_p = layer_1p
-#     index = index+batch_predict
-#     
-# y_pred = denormalize(np.reshape(y_pred,(-1,1)), data['value'], (-1,1))
-# testY = denormalize(testY, data['value'], (-1,1))
-# mse_pred = mse(testY,y_pred)
-# rmse_pred = rmse(testY,y_pred)
-# mae_pred = mae(testY,y_pred)
-# dstat_pred = dstat(testY,y_pred)
-# scoring = [mse_pred,rmse_pred,mae_pred,dstat_pred, run_time]
-# 
-# plt.plot(testY, label='true')
-# plt.plot(y_pred, label='prediction')
-# plt.title('RNN-UKF')
-# plt.legend()
-# plt.show()
-# print(scoring)
-# 
-# plt.plot(testY[0:50], label='true')
-# plt.plot(y_pred[0:50], label='prediction')
-# plt.title('RNN-UKF')
-# plt.legend()
-# plt.show()
-# 
-# #%%
-# np.savetxt('bobot_input.csv', synapse_0, delimiter=',')
-# np.savetxt('bobot_hidden.csv', synapse_h, delimiter=',')
-# np.savetxt('bobot_output.csv', synapse_1, delimiter=',')
-# np.savetxt('loss_ukf.csv', mse_all, delimiter=';')
-# =============================================================================
+#%% 
+
+#coba predict
+
+batch_predict = testX.shape[0]
+context_layer_p = np.full((batch_predict,hidden_dim),0)
+y_pred = []
+index = 0
+while(index+batch_predict<=testX.shape[0]):
+    X = testX[index:index+batch_predict,:]
+    layer_1p = tanh(np.dot(X,synapse_0)+np.dot(context_layer_p,synapse_h))
+    layer_2p = tanh(np.dot(layer_1p,synapse_1))
+    y_pred.append(layer_2p)
+    context_layer_p = layer_1p
+    index = index+batch_predict
+    
+y_pred = denormalize(np.reshape(y_pred,(-1,1)), data['value'], (-1,1))
+testY = denormalize(testY, data['value'], (-1,1))
+mse_pred = mse(testY,y_pred)
+rmse_pred = rmse(testY,y_pred)
+mae_pred = mae(testY,y_pred)
+dstat_pred = dstat(testY,y_pred)
+scoring = [mse_pred,rmse_pred,mae_pred,dstat_pred, run_time]
+
+plt.plot(testY, label='true')
+plt.plot(y_pred, label='prediction')
+plt.title('RNN-UKF')
+plt.legend()
+plt.show()
+print(scoring)
+
+plt.plot(testY[0:50], label='true')
+plt.plot(y_pred[0:50], label='prediction')
+plt.title('RNN-UKF')
+plt.legend()
+plt.show()
+
+#%%
+np.savetxt('bobot_input.csv', synapse_0, delimiter=',')
+np.savetxt('bobot_hidden.csv', synapse_h, delimiter=',')
+np.savetxt('bobot_output.csv', synapse_1, delimiter=',')
+np.savetxt('loss_ukf.csv', mse_all, delimiter=';')
 
 #%%
 

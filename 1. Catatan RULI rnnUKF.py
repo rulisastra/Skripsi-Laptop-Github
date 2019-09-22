@@ -15,23 +15,19 @@ def pisahData(data,a,b):
         test = data[train_size-1:len(data)]
      return np.array(train),np.array(test)
 
-#normalisasi duluan
-def normalize(data,scale):
+def normalize(data, scale):
     normalized = []
     for i in range(len(data)):
-       a = (min(scale))+((data[i]-min(data))*
-              max(scale)-min(scale))/(max(data)-min(data))
-       normalized.append(a)
+        a = (min(scale))+(data[i]-min(data))*(max(scale)-min(scale))/(max(data)-min(data))
+        normalized.append(a)
     return np.array(normalized)
 
-#denorm
 def denormalize(normalized, data, scale):
     denormalized = []
     for i in range(len(normalized)):
-        a = ((normalized[i]-min(scale))*(max(data)-
-              min(data)))/(max(scale)-min(scale))+min(data)
+        a = ((normalized[i]-min(scale))*(max(data)-min(data)))/(max(scale)-min(scale))+min(data)
         denormalized.append(a)
-    return np.array(denormalize)
+    return np.array(denormalized)
 
 # =============================================================================
 # scale = (-1,1)
@@ -251,31 +247,32 @@ testY = denormalize(testY, data['value'], (-1,1))
 
 def mse(x,y):
     mse = []
-    for i in range(len(x)):
+    for i in range(len(y)):
         a = (x[i]-y[i])**2
         mse.append(a)
     mse = float((sum(mse)/len(y)))
     return mse
 
-def rmse(x,y):
-    rmse = []
-    for i in range(len(x)):
-        a = (x[i]-y[i])**2
-        mse.append(a)
-    rmse = float((sum(mse)/len(y))**0.5)
-    return rmse
 
 def mae(x,y):
     mae = []
-    for i in range(len(x)):
-        a = abs(x[i]-y[i])
+    for i in range(len(y)):
+        a = abs(y[i]-x[i])
         mae.append(a)
-    mae = float((sum(mse))/len(y))
+    mae = float(sum(mae)/len(y))
     return mae
+
+def rmse(x,y):
+    rmse = []
+    for i in range(len(y)):
+        a = (x[i]-y[i])**2
+        rmse.append(a)
+    rmse = float((sum(rmse)/len(y))**0.5)
+    return rmse
 
 def mape(x,y):
     mape = []
-    for i in range(len(x)):
+    for i in range(len(y)):
         a = abs((x[i]-y[i])/x[i])
         mape.append(a)
     mape = float((sum(mse))/len(y))*100
@@ -285,9 +282,9 @@ def dstat(x,y):
     dstat = 0
     n = len(y)
     for i in range(n-1):
-        if(((x[i+1]-y[i])*(y[i+1]-y[i]))>=0):
+        if(((x[i+1]-y[i])*(y[i+1]-y[i]))>0):
             dstat += 1
-    Dstat = (1/float(n-1))*float(dstat)*100
+    Dstat = (1/float(n-2))*float(dstat)*100
     return float(Dstat)
 
 epoch = 1270
