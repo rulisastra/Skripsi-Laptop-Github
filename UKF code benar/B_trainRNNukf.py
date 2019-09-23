@@ -21,6 +21,8 @@ def normalize(data, scale):
         a = (min(scale))+(data[i]-min(data))*(max(scale)-min(scale))/(max(data)-min(data))
         normalized.append(a)
     return np.array(normalized)
+    scale = (-1,1)
+    normalized = normalize(data,scale)
 
 def denormalize(normalized, data, scale):
     denormalized = []
@@ -29,16 +31,9 @@ def denormalize(normalized, data, scale):
         denormalized.append(a)
     return np.array(denormalized)
 
-# =============================================================================
-# scale = (-1,1)
-# normalized = normalize(data,scale)
-# print(normalized)
-# plt.show()
-# =============================================================================
-
-
 #persiapan data
-data = pd.read_csv('data.csv',usecols=[1],
+data = pd.read_csv('BTC_USD_2018-04-06_2019-09-23-CoinDesk.csv',
+                    usecols=[1],
                     engine='python',
                     delimiter=',',
                     decimal=".",
@@ -96,7 +91,7 @@ mse_all = []
 
 #inisialisasi sebelum train
 jumlah_w = (input_dim*hidden_dim)+(hidden_dim*hidden_dim)+(hidden_dim*output_dim)
-Q = 0.01*np.identity(jumlah_w)
+Q = 1*np.identity(jumlah_w)
 R = 1*np.identity(output_dim)
 P = 1*np.identity(jumlah_w)
 
@@ -412,11 +407,13 @@ plt.legend()
 plt.show()
 print(scoring)
 
-plt.plot(testY[0:50], label='true')
-plt.plot(y_pred[0:50], label='prediction')
-plt.title('RNN-UKF')
-plt.legend()
-plt.show()
+# =============================================================================
+# plt.plot(testY[0:50], label='true')
+# plt.plot(y_pred[0:50], label='prediction')
+# plt.title('RNN-UKF')
+# plt.legend()
+# plt.show()
+# =============================================================================
 
 #%%
 np.savetxt('bobot_input.csv', synapse_0, delimiter=',')
