@@ -96,74 +96,103 @@ jumlah_w = (input_dim*hidden_dim)+(hidden_dim*hidden_dim)+(hidden_dim*output_dim
 Q = 1*np.identity(jumlah_w) #kovarian Noise process
 R = 1*np.identity(output_dim) #Kovarian Noise measurement(observasi)
 P = 1*np.identity(jumlah_w) #kovarian estimasi vektor state
+# V = np.zeros((windowSize), dtype=int)
 
-#%%
-
-#UKF!
-
-def total_sigmas(data): #semua n diganti (data)
-        return 2*data + 1 #Number of sigma points for each variable in the state x
-
-def sigma_points(x, data, P, alpha=1e-1, beta=2, kappa=0, sqrt_method=None, subtract=None):
-        """ Computes the sigma points for an unscented Kalman filter
-        given the mean (x) and covariance(P) of the filter.
-        Returns tuple of the sigma points and weights.
-
-        Works with both scalar and array inputs:
-        sigma_points (5, 9, 2) # mean 5, covariance 9
-        sigma_points ([5, 2], 9*eye(2), 2) # means 5 and 2, covariance 9I
-
-        Parameters
-        ----------
-
-        x : An array-like object of the means of length n
-            Can be a scalar if 1D.
-            examples: 1, [1,2], np.array([1,2])
-
-        P : scalar, or np.array
-           Covariance of the filter. If scalar, is treated as eye(n)*P.
-
-        Returns
-        -------
-
-        sigmas : np.array, of size (n, 2n+1)
-            Two dimensional array of sigma points. Each column contains all of
-            the sigmas for one dimension in the problem space.
-
-            Ordered by Xi_0, Xi_{1..n}, Xi_{n+1..2n}
-        """
-
-        if trainX != np.size(x):
-            raise ValueError("expected size(x) {}, but size is {}".format(
-                trainX, np.size(x)))
-
-        data = data
-
-        if np.isscalar(x):
-            x = np.asarray([x])
-
-        if  np.isscalar(P):
-            P = np.eye(data)*P
-        else:
-            P = np.atleast_2d(P)
-
-        lambda_ = alpha**2 * (data + kappa) - data
-        U = np.sqrt((lambda_ + data)*P)
-        c = .5 / (data + lambda_)
-        Wc = np.full(2*data + 1, c)
-        Wm = np.full(2*data + 1, c)
-        Wc[0] = lambda_ / (data + lambda_) + (1 - alpha**2 + beta)
-        Wm[0] = lambda_ / (data + lambda_)
-
-        sigmas = np.zeros((2*data+1, data))
-        sigmas[0] = x
-        for k in range(data):
-            # pylint: disable=bad-whitespace
-            sigmas[k+1]   = subtract(x, -U[k])
-            sigmas[data+k+1] = subtract(x, U[k])
-
-        return sigmas
-
+# =============================================================================
+# #%% ----------------------------------------------------------
+# #UNSCENTED KALMAN FILTER (ALL)
+# 
+# #inisialisasi faktor skalar
+# #m = np.sum(trainY)
+# #L = np.sum(trainX)
+# 
+# #inisialisasi PARAMETER -> van der merwe suggest using beta =2 kappa = 3-n
+# beta = 2
+# alpha = np.random.random(1)
+# n = 1 #n = dimensi dari x
+# kappa = 3-n #atau 0 oleh dash 2014
+# 
+# ##WEIGHTS
+# lambda_ = alpha**2 * (n + kappa) - n
+# Wc = np.full(2*n + 1,  1. / (2*(n + lambda_)))
+# Wm = np.full(2*n + 1,  1. / (2*(n + lambda_)))
+# Wc[0] = lambda_ / (n + lambda_) + (1. - alpha**2 + beta)
+# Wm[0] = lambda_ / (n + lambda_)
+# 
+# #SIGMA POINTS masih salaah
+# #a
+# s = np.sqrt(data) #data atau x??? data kok
+# np.dot(s, s.T)
+# 
+# sigmas = np.zeros((2*n+1, n))
+# U = np.sqrt((n+lambda_)*P) # sqrt
+# 
+# def sigmaPoint(data,X,k):
+#     sigmas[0] = X
+#     for k in range(n):
+#         sigmas[k+1]   = X + U[k]
+#         sigmas[n+k+1] = X - U[k]
+#         x = np.dot(Wm, sigmas) #jumlah sigma mean atau means
+#         return np.dot(x,n)
+#     
+# x = np.dot(Wm, sigmas)
+# n = sigmas.shape
+# sg = sigmaPoint
+# 
+# def P_(kmax,n,k):
+#     P = np.zeros((n, n))
+#     for i in range(kmax):
+#         y = sigmas[i] - x
+#         P += Wc[i] * np.outer(y, y) 
+#         P += Q
+#         y = (sigmas[k] - x).reshape(kmax, 1) # convert into 2D array
+#         P += Wc[k] * np.dot(y, y.T) #P += Wc[K] * np.dot(y, y.T)
+#         return()
+# 
+# #PREDIKSI (STEP)
+# def predict(sigma_points_fn):
+#     """ Performs the predict step of the UKF. On return, 
+#     self.xp and self.Pp contain the predicted state (xp) 
+#     and covariance (Pp). 'p' stands for prediction.
+#     """
+# 
+#     # calculate sigma points for given mean and covariance
+#     sigmas = sigma_points_fn(x,P)
+# 
+#     for i in range(sigmas):
+#         sigmas_f[i] = fx(sigmas[i])
+# 
+#     xp,Pp = (sigmas_f,Wm,Wc,Q).T #transform
+#     return(predict)
+#     
+# predict
+# 
+# #UPDATE STEP
+# def update(z):
+#     # rename for readability
+#     sigmas_f = sigmas_f
+#     sigmas_h = sigmas_h
+# 
+#     # transform sigma points into measurement space
+#     for i in range(self._num_sigmas):
+#         sigmas_h[i] = self.hx(sigmas_f[i])
+# 
+#     # mean and covariance of prediction passed through UT
+#     zp, Pz = (sigmas_h, self.Wm, self.Wc, self.R).T #transform
+# 
+#     # compute cross variance of the state and the measurements
+#     Pxz = np.zeros((self._dim_x, self._dim_z))
+#     for i in range(self._num_sigmas):
+#         Pxz += self.Wc[i] * np.outer(sigmas_f[i] - self.xp,
+#                                     sigmas_h[i] - zp)
+# 
+#     K = np.dot(Pxz, np.linalg.inv(Pz)) # Kalman gain
+# 
+#     self.x = self.xp + np.dot(K, z-zp)
+#     self.P = self.Pp - np.dot(np.dot(K, Pz),np.dot(K.T))
+#     return np.array(self.x),np.array(self.P)
+# 
+# =============================================================================
 #%%
 
 def mse(x,y):
@@ -247,28 +276,28 @@ for i in range(epoch):
         synapse_0_c = np.reshape(synapse_0,(-1,1))
         synapse_h_c = np.reshape(synapse_h,(-1,1))
         synapse_1_c = np.reshape(synapse_1,(-1,1))
-        w_concat = np.concatenate((synapse_0_c,synapse_h_c,synapse_1_c), axis=0) #rentetan bobot
+        w_concat = np.concatenate((synapse_0_c,synapse_h_c,synapse_1_c), axis=0)
         
         #jacobian
         dsynapse_0 = np.reshape(synapse_0_update,(1,-1))
         dsynapse_h = np.reshape(synapse_h_update,(1,-1))
         dsynapse_1 = np.reshape(synapse_1_update,(1,-1))
-        T_ = np.concatenate((dsynapse_0,dsynapse_h,dsynapse_1), axis=1) # T_ sama dengan H di EKF
-        T_transpose = T_.T
+        H = np.concatenate((dsynapse_0,dsynapse_h,dsynapse_1), axis=1)
+        H_transpose = H.T
         
         #Kalman Gain
-        K = np.zeros((batch_dim, output_dim))    # Kalman gain
-        y = np.zeros((output_dim))           # residual
-        z = np.array([[None]*output_dim]).T  # measurement
-        S = np.zeros((output_dim, output_dim))    # system uncertainty
-        SI = np.zeros((output_dim, output_dim))   # inverse system uncertainty
+        K1 = np.dot(H,P)
+        K2 = np.dot(K1,H_transpose)+R
+        K3 = inv(K2)
+        K4 = np.dot(P,H_transpose)
+        K = np.dot(K4,K3)
         
         #update weight
         innovation = ((Y-layer_2).sum()/len(layer_2_error))
         w_concat_new = w_concat + np.dot(K,innovation)
         
         #update P
-        P1 = np.dot(K,T_)
+        P1 = np.dot(K,H)
         P2 = np.dot(P1,P)+Q
         P = P-P2
         

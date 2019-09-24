@@ -430,3 +430,229 @@ np.savetxt('bobot_output.csv', synapse_1, delimiter=',')
 np.savetxt('loss_ukf.csv', mse_all, delimiter=';')
 
 #%%
+
+
+
+
+# =============================================================================
+# #%% ----------------------------------------------------------
+# #UNSCENTED KALMAN FILTER (ALL)
+# 
+# #inisialisasi faktor skalar
+# #m = np.sum(trainY)
+# #L = np.sum(trainX)
+# 
+# #inisialisasi PARAMETER -> van der merwe suggest using beta =2 kappa = 3-n
+# beta = 2
+# alpha = np.random.random(1)
+# n = 1 #n = dimensi dari x
+# kappa = 3-n #atau 0 oleh dash 2014
+# 
+# #initial mean and covariance
+# mean = (0., 0.)
+# p = np.array([[32., 15], [15., 40.]])
+# 
+# # create sigma points and weights
+# points = MerweScaledSigmaPoints(n=2, alpha=.3, beta=2., kappa=.1)
+# sigmas = points.sigma_points(mean, p)
+# 
+# ### pass through nonlinear function
+# sigmas_f = np.empty((5, 2))
+# for i in range(5):
+#     sigmas_f[i] = sigmas_f(sigmas[i, 0], sigmas[i ,1]) ##? 
+# 
+# ### use unscented transform to get new mean and covariance
+# ukf_mean, ukf_cov = unscented_transform(sigmas_f, points.Wm, points.Wc)
+# 
+# #generate random points
+# np.random.seed(100)
+# xs, ys = trainX(mean=mean, cov=p, size=5000).T
+# 
+# mean(xs, ys, trainX, ukf_mean, 'Unscented Mean')
+# ax = plt.gcf().axes[0]
+# ax.scatter(sigmas[:,0], sigmas[:,1], c='r', s=30);
+# 
+# ##WEIGHTS
+# lambda_ = alpha**2 * (n + kappa) - n
+# Wc = np.full(2*n + 1,  1. / (2*(n + lambda_)))
+# Wm = np.full(2*n + 1,  1. / (2*(n + lambda_)))
+# Wc[0] = lambda_ / (n + lambda_) + (1. - alpha**2 + beta)
+# Wm[0] = lambda_ / (n + lambda_)
+# 
+# #SIGMA POINTS masih salaah
+# #a
+# s = np.sqrt(data) #data atau x??? data kok
+# np.dot(s, s.T)
+# 
+# sigmas = np.zeros((2*n+1, n))
+# U = np.sqrt((n+lambda_)*P) # sqrt
+# 
+# def sigmaPoint(data,X,k):
+#     sigmas[0] = X
+#     for k in range(n):
+#         sigmas[k+1]   = X + U[k]
+#         sigmas[n+k+1] = X - U[k]
+#         x = np.dot(Wm, sigmas) #jumlah sigma mean atau means
+#         return np.dot(x,n)
+#     
+# x = np.dot(Wm, sigmas)
+# n = sigmas.shape
+# sg = sigmaPoint
+# 
+# def P_(kmax,n,k):
+#     P = np.zeros((n, n))
+#     for i in range(kmax):
+#         y = sigmas[i] - x
+#         P += Wc[i] * np.outer(y, y) 
+#         P += Q
+#         y = (sigmas[k] - x).reshape(kmax, 1) # convert into 2D array
+#         P += Wc[k] * np.dot(y, y.T) #P += Wc[K] * np.dot(y, y.T)
+#         return()
+# =============================================================================
+
+# =============================================================================
+# #PREDIKSI (STEP)
+# def predict(sigma_points_fn):
+#     """ Performs the predict step of the UKF. On return, 
+#     trainY and P contain the predicted state (trainY) 
+#     and covariance (P). 'p' stands for prediction.
+#     """
+# 
+#     # calculate sigma points for given mean and covariance
+#     sigmas = sigma_points_fn(x,P)
+# 
+#     for i in range(sigmas):
+#         trainX[i] = synapse_0(sigmas[i])
+# 
+#     xp,Pp = (sigmas_f,Wm,Wc,Q).T #transform
+#     return(predict)
+#     
+# predict
+# 
+# #UPDATE STEP
+# def update(z):
+#     # transform sigma points into measurement space
+#     for i in range(sigmas):
+#         sigmas_h[i] = hx(sigmas_f[i])
+# 
+#     # mean and covariance of prediction passed through UT
+#     zp, Pz = (sigmas_h, Wm,Wc, R).T #transform
+# 
+#     # compute cross variance of the state and the measurements
+#     Pxz = np.zeros(input_dim, hidden_dim)
+#     for i in range(20):
+#         Pxz += Wc[i] * np.outer(sigmas_f[i] - xp,sigmas_h[i] - zp)
+# 
+#     K = np.dot(Pxz, np.linalg.inv(Pz)) # Kalman gain
+# 
+#     x = xp + np.dot(K, z-zp)
+#     P = Pp - np.dot(np.dot(K, Pz),np.dot(K.T))
+#     return np.array(x),np.array(P)
+# =============================================================================
+
+#%%
+# =============================================================================
+# def transition_funciton(trainX, noise):
+#     '''
+#     --------
+#     The function that evolve the state from k-1 to k.
+#     --------
+#     Inputs: 
+#     state: State vector of the system
+#     noise: The noise of the dynamic process
+#     '''
+#     a = np.sin(trainX[0]) + trainX[1] + noise[0]
+#     b = trainX[1] + noise[1]
+# 
+#     return np.array([a,b])
+# 
+# def observation_function(trainX, noise):
+#     '''
+#     The function is about the relationship between the state vector 
+#     and the external measurement
+#     '''
+#     C = np.array([
+#         [-1, 0.5],
+#         [0.2, 0.1]
+#     ])
+#     return np.dot(C, state) + noise
+# 
+# 
+# '''----INITIALIZE THE PARAMETERS----'''
+# transition_covariance = np.eye(2)
+# noise_generator = np.random.RandomState(0)
+# observation_covariance = np.eye(2) + noise_generator.randn(2,2) * 0.01
+# Initial_state = [0,0]
+# intial_covariance = [[1,0.1], [-0.1,1]]
+# 
+# # UKF
+# kf = UnscentedKalmanFilter(
+#     transition_funciton, observation_function,
+#     transition_covariance, observation_covariance,
+#     Initial_state,intial_covariance,
+#     random_state=noise_generator
+# )
+# 
+# trainX, observations = kf.sample(500,Initial_state)
+# # estimate state with filtering and smoothing
+# filtered_state_estimates = kf.filter(observations)[0]
+# smoothed_state_estimates = kf.smooth(observations)[0]
+# 
+# =============================================================================
+
+# =============================================================================
+# #UNSCENTED KALMAN FILTER
+# 
+# #inisialisasi parameter yang dibutuhkan: sigma dan bobot mean & kovarian
+# sg1 = np.eye(2) #transition_covariance
+# sg2 = np.random.RandomState(0) #noise_generator
+# sg3 = np.eye(2) + sg2.randn(2,2) * 0.0 #observation_covariance
+# sg4 = [0,0] #Initial_state
+# sg5 = [[1,0.1], [-0.1,1]] #intial_covariance
+# 
+# def ukf(foFx, dataX, P, Nmeas, hmeas, z, Q, R):
+#         """ Unscented Kalman Filter for nonlinear dynamic systems
+# 
+#     :param FofX:    function handle for f(x)
+#     :param x:       "a priori" state estimate
+#     :param P:       "a priori" estimated state covariance
+#     :param hmeas:   function handle for h(x)
+#     :param z:       current measurement
+#     :param Q:       process noise covariance
+#     :param R:       measurement noise covariance
+#     :N
+#     :return:    x:  "a posteriori" state estimate
+#                 P:  "a posteriori" state covariance            
+#     """
+#         Nstates = trainX.size
+# #       Nmeas = trainY.size
+#         
+#         # tunables
+#         sigmas = MerweScaledSigmaPoints(5,
+#         alpha = 1e-1  # default, tunable
+#         kappa = 0  # default, tunable
+#         beta = 2  # default, tunable
+# 
+#         # params
+#         Lambda = (alpha ** 2) * (Nstates + kappa) - Nstates  # scaling factor
+#         cc = Nstates + Lambda  # scaling factor
+# 
+#         # (2) komputasi weights buat titik sigma yang telah ditentukan
+#         Wm = (0.5/cc) #Wm ke i sama dengan Wc ke i
+#         Wc = Wm.copy() 
+#         Wm[0,0] = Lambda / cc  # weights for means
+#         Wc[0,0] += Lambda/(1 - alpha ** 2 + beta)  # weights for covariance
+# 
+#         # (1) sigma points around x
+#         sigmas = MerweScaledSigmaPoints
+#         X = sigmas(x, P, sqrt(cc))
+#         # unscented transformation of process
+#         x1, X1, P1, X2 = ut(FofX, X, Wm, Wc, Nstates, Q)
+#         # unscented transformation of measurements
+#         z1, Z1, P2, Z2 = ut(hmeas, X1, Wm, Wc, Nmeas, R)
+#         P12 = X2 @ diagflat(Wc) @ Z2.T  # transformed cross-covariance
+#         K = P12 * inv(P2)
+#         x = x1 + K @ (z - z1)  # state update
+#         P = P1 - K @ P12.T  # covariance update
+#     
+# =============================================================================
