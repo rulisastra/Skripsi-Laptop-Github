@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 from numpy.linalg import inv
+#from filterpy.kalman import UnscentedKalmanFilter as ukf_
+#from pykalman import UnscentedKalmanFilter
 
 #persiapan data
 data = pd.read_csv('BTC_USD_2018-04-06_2019-09-23-CoinDesk.csv',
@@ -49,6 +51,47 @@ data_raw = normalize(data['value'],(-1,1))
 train_data, test_data = pisahData(data_raw, 0.7, 0.3)
 train_data = train_data.reshape(-1,1) #reshape data dengan range -1,1 -> satu kolom kebawah
 test_data = test_data.reshape(-1,1)
+
+def mse(x,y):
+    mse = []
+    for i in range(len(y)):
+        a = (x[i]-y[i])**2
+        mse.append(a)
+    mse = float((sum(mse)/len(y)))
+    return mse
+
+def mae(x,y):
+    mae = []
+    for i in range(len(y)):
+        a = abs(y[i]-x[i])
+        mae.append(a)
+    mae = float(sum(mae)/len(y))
+    return mae
+
+def rmse(x,y):
+    rmse = []
+    for i in range(len(y)):
+        a = (x[i]-y[i])**2
+        rmse.append(a)
+    rmse = float((sum(rmse)/len(y))**0.5)
+    return rmse
+
+def mape(x,y):
+    mape = []
+    for i in range(len(y)):
+        a = abs((x[i]-y[i])/x[i])
+        mape.append(a)
+    mape = float((sum(mse))/len(y))*100
+    return mape
+
+def dstat(x,y):
+    dstat = 0
+    n = len(y)
+    for i in range(n-1):
+        if(((x[i+1]-y[i])*(y[i+1]-y[i]))>0):
+            dstat += 1
+    Dstat = (1/float(n-2))*float(dstat)*100
+    return float(Dstat)
 
 #createwindowSize =3 untuk input
 def createDataset(data, windowSize):
@@ -97,47 +140,23 @@ Q = 1*np.identity(jumlah_w) #kovarian Noise process
 R = 1*np.identity(output_dim) #Kovarian Noise measurement(observasi)
 P = 1*np.identity(jumlah_w) #kovarian estimasi vektor state
 
-#%%
+#%% UKF
 
-#UKF!
+alpha=1e-1
+beta=2
+kappa=0
+lambda_ = alpha**2 * (data + kappa) - data
+
 
 def total_sigmas(data): #semua n diganti (data)
         return 2*data + 1 #Number of sigma points for each variable in the state x
 
-def sigma_points(x, data, P, alpha=1e-1, beta=2, kappa=0, sqrt_method=None, subtract=None):
-        """ Computes the sigma points for an unscented Kalman filter
-        given the mean (x) and covariance(P) of the filter.
-        Returns tuple of the sigma points and weights.
-
-        Works with both scalar and array inputs:
-        sigma_points (5, 9, 2) # mean 5, covariance 9
-        sigma_points ([5, 2], 9*eye(2), 2) # means 5 and 2, covariance 9I
-
-        Parameters
-        ----------
-
-        x : An array-like object of the means of length n
-            Can be a scalar if 1D.
-            examples: 1, [1,2], np.array([1,2])
-
-        P : scalar, or np.array
-           Covariance of the filter. If scalar, is treated as eye(n)*P.
-
-        Returns
-        -------
-
-        sigmas : np.array, of size (n, 2n+1)
-            Two dimensional array of sigma points. Each column contains all of
-            the sigmas for one dimension in the problem space.
-
-            Ordered by Xi_0, Xi_{1..n}, Xi_{n+1..2n}
-        """
-
+def sigma_points(x, data, P, sqrt_method=None, subtract=None):
         if trainX != np.size(x):
             raise ValueError("expected size(x) {}, but size is {}".format(
                 trainX, np.size(x)))
 
-        data = data
+        data = X
 
         if np.isscalar(x):
             x = np.asarray([x])
@@ -149,14 +168,14 @@ def sigma_points(x, data, P, alpha=1e-1, beta=2, kappa=0, sqrt_method=None, subt
 
         lambda_ = alpha**2 * (data + kappa) - data
         U = np.sqrt((lambda_ + data)*P)
-        c = .5 / (data + lambda_)
+        c = .5 / (data + lambda_) #sama dengan Wc = Wm
         Wc = np.full(2*data + 1, c)
         Wm = np.full(2*data + 1, c)
         Wc[0] = lambda_ / (data + lambda_) + (1 - alpha**2 + beta)
         Wm[0] = lambda_ / (data + lambda_)
-
         sigmas = np.zeros((2*data+1, data))
         sigmas[0] = x
+        
         for k in range(data):
             # pylint: disable=bad-whitespace
             sigmas[k+1]   = subtract(x, -U[k])
@@ -164,50 +183,19 @@ def sigma_points(x, data, P, alpha=1e-1, beta=2, kappa=0, sqrt_method=None, subt
 
         return sigmas
 
-#%%
-
-def mse(x,y):
-    mse = []
-    for i in range(len(y)):
-        a = (x[i]-y[i])**2
-        mse.append(a)
-    mse = float((sum(mse)/len(y)))
-    return mse
-
-
-def mae(x,y):
-    mae = []
-    for i in range(len(y)):
-        a = abs(y[i]-x[i])
-        mae.append(a)
-    mae = float(sum(mae)/len(y))
-    return mae
-
-def rmse(x,y):
-    rmse = []
-    for i in range(len(y)):
-        a = (x[i]-y[i])**2
-        rmse.append(a)
-    rmse = float((sum(rmse)/len(y))**0.5)
-    return rmse
-
-def mape(x,y):
-    mape = []
-    for i in range(len(y)):
-        a = abs((x[i]-y[i])/x[i])
-        mape.append(a)
-    mape = float((sum(mse))/len(y))*100
-    return mape
-
-def dstat(x,y):
-    dstat = 0
-    n = len(y)
-    for i in range(n-1):
-        if(((x[i+1]-y[i])*(y[i+1]-y[i]))>0):
-            dstat += 1
-    Dstat = (1/float(n-2))*float(dstat)*100
-    return float(Dstat)
-
+def state_mean(sigmas, Wm):
+    x = np.zeros(3)
+    sum_sin, sum_cos = 0., 0.
+    
+    for i in range(len(sigmas)):
+        s = sigmas[i]
+        x[0] += s[0] * Wm[i]
+        x[1] += s[1] * Wm[i]
+        sum_sin += np.sin(s[2])*Wm[i]
+        sum_cos += np.cos(s[2])*Wm[i]
+        x[2] = np.tan(sum_sin, sum_cos) #atan2
+        return x
+   
 #%%
 
 epoch = 5
@@ -253,8 +241,15 @@ for i in range(epoch):
         dsynapse_0 = np.reshape(synapse_0_update,(1,-1))
         dsynapse_h = np.reshape(synapse_h_update,(1,-1))
         dsynapse_1 = np.reshape(synapse_1_update,(1,-1))
-        T_ = np.concatenate((dsynapse_0,dsynapse_h,dsynapse_1), axis=1) # T_ sama dengan H di EKF
-        T_transpose = T_.T
+        H = np.concatenate((dsynapse_0,dsynapse_h,dsynapse_1), axis=1) # T_ sama dengan H di EKF
+        H_transpose = H.T
+        
+        #inisialisasi UKF
+        Myu = np.mean(X)
+        stdDev = np.std(X)
+        Q = np.dot((stdDev**2),np.eye(jumlah_w))
+        R = stdDev**2
+        P = np.eye(jumlah_w)
         
         #Kalman Gain
         K = np.zeros((batch_dim, output_dim))    # Kalman gain
@@ -262,13 +257,29 @@ for i in range(epoch):
         z = np.array([[None]*output_dim]).T  # measurement
         S = np.zeros((output_dim, output_dim))    # system uncertainty
         SI = np.zeros((output_dim, output_dim))   # inverse system uncertainty
+#       Zet = ukf.sigma(P)# transformed sigma points i measurements space
+        
+        c = .5 / (data + lambda_) #sama dengan Wc = Wm
+
+        K1 = np.dot(H,P)
+        K2 = np.dot(K1,H_transpose)+R
+        K3 = inv(K2)
+        K4 = np.dot(P,H_transpose) #jangan diubah karena sama
+        
+        K0 = np.substract(sigmas,Myu)
+        K1 = np.sum(Wm)
+        K2 = np.subtract(H,z)
+        K2_t = np.transpose(K2)
+        K3 = np.sum()
+        K4_t = np.sum(np.dot(c,K4)) # T kapital
+        K = np.dot(K4,K3)
         
         #update weight
         innovation = ((Y-layer_2).sum()/len(layer_2_error))
         w_concat_new = w_concat + np.dot(K,innovation)
         
         #update P
-        P1 = np.dot(K,T_)
+        P1 = np.dot(K,H)
         P2 = np.dot(P1,P)+Q
         P = P-P2
         
@@ -335,10 +346,17 @@ plt.show()
 print(scoring)
 
 #%%
+plt.subplot(121)
+plt.scatter(data[:X], range(X), alpha=.2, s=1)
+plt.title('Input')
+plt.subplot(122)
+plt.title('Output')
+plt.scatter(w_concat_new(data[:X]), range(X), alpha=.2, s=1);
+
+
+#%%
 np.savetxt('bobot_input.csv', synapse_0, delimiter=',')
 np.savetxt('bobot_hidden.csv', synapse_h, delimiter=',')
 np.savetxt('bobot_output.csv', synapse_1, delimiter=',')
 np.savetxt('loss_ukf.csv', mse_all, delimiter=';')
-
-#%%
 
