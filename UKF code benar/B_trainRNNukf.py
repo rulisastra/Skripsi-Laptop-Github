@@ -166,15 +166,15 @@ def sigma_points(x, data, P, sqrt_method=None, subtract=None):
         else:
             P = np.atleast_2d(P)
 
-        lambda_ = alpha**2 * (data + kappa) - data
-        U = np.sqrt((lambda_ + data)*P)
-        c = .5 / (data + lambda_) #sama dengan Wc = Wm
-        Wc = np.full(2*data + 1, c)
-        Wm = np.full(2*data + 1, c)
-        Wc[0] = lambda_ / (data + lambda_) + (1 - alpha**2 + beta)
-        Wm[0] = lambda_ / (data + lambda_)
-        sigmas = np.zeros((2*data+1, data))
-        sigmas[0] = x
+        global lambda_ = alpha**2 * (data + kappa) - data
+        global U = np.sqrt((lambda_ + data)*P)
+        global c = .5 / (data + lambda_) #sama dengan Wc = Wm
+        global Wc = np.full(2*data + 1, c)
+        global Wm = np.full(2*data + 1, c)
+        global Wc[0] = lambda_ / (data + lambda_) + (1 - alpha**2 + beta)
+        global Wm[0] = lambda_ / (data + lambda_)
+        global sigmas = np.zeros((2*data+1, data))
+        global sigmas[0] = x
         
         for k in range(data):
             # pylint: disable=bad-whitespace
