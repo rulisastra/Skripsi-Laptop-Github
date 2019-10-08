@@ -2,10 +2,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import time
-from numpy.linalg import inv
+#from numpy.linalg import inv
 from filterpy.kalman import UnscentedKalmanFilter as UKF
-from filterpy.kalman import unscented_transform, MerweScaledSigmaPoints
-
+from filterpy.kalman import MerweScaledSigmaPoints #,unscented_transform
 
 #persiapan data
 data = pd.read_csv('data.csv',
@@ -140,7 +139,7 @@ jumlah_w = (input_dim*hidden_dim)+(hidden_dim*hidden_dim)+(hidden_dim*output_dim
 Q = 0.01*np.identity(jumlah_w) #kovarian Noise process
 R = 1*np.identity(output_dim) #Kovarian Noise measurement(observasi)
 P = 1*np.identity(jumlah_w) #kovarian estimasi vektor state
-
+    
 def fx(x, dt):
     xout = np.empty_like(x)
     xout[0] = x[1] * dt + x[0]
@@ -149,6 +148,30 @@ def fx(x, dt):
 
 def hx(x):
     return x[:1] # return position [x] 
+
+#membuat sigma_points dengan 2n+1 dengan menyimppan n(dimensi)->kolom, dan sigmapoints-> rows
+points = MerweScaledSigmaPoints(n=18, alpha=.3, beta=2., kappa=0) #makin besar alpha, makin menyebar data[:train_data], range(train_data)
+ukf = UKF(jumlah_w, input_dim, dt=0.1, hx=hx, fx=fx, points=points)
+
+'''
+dim_x = int
+        banyaknya variabel dar states
+        ex : if you are tracking the position and velocity of an object in two
+            dimensions, dim_x would be 4.
+        
+        di library,         self.P = eye(dim_x)
+        di kodingan dudi... P = 1*np.identity(jumlah_w) #kovarian estimasi vektor state
+        
+dim_z = int 
+        banyaknya input di measurement. For example, 
+        ex : if the sensor provides you with position in (x,y), dim_z would be 2.
+    
+            This is for convience, so everything is sized correctly on
+            creation. If you are using multiple sensors the size of `z` can
+            change based on the sensor. Just provide the appropriate hx function
+
+'''
+
 
 #%%
 
@@ -182,14 +205,14 @@ for i in range(epoch):
     
         #calculate weight update
         synapse_1_update = np.dot(np.atleast_2d(layer_1).T,(layer_2_delta))
-        synapse_h_update = np.dot(np.atleast_2d(context_layer).T,(layer_1_delta))
+        synapse_h_update = np.dot(np.atleast_2d(context_layer).T,(layer_1_delta)) 
         synapse_0_update = np.dot(X.T,(layer_1_delta))
         
         #concatenate weight
         synapse_0_c = np.reshape(synapse_0,(-1,1))
-        synapse_h_c = np.reshape(synapse_h,(-1,1))
+        synapse_h_c = np.reshape(synapse_h,(-1,1)) 
         synapse_1_c = np.reshape(synapse_1,(-1,1))
-        w_concat = np.concatenate((synapse_0_c,synapse_h_c,synapse_1_c), axis=0) #rentetan bobot
+        w_concat = np.concatenate((synapse_0_c,synapse_h_c,synapse_1_c), axis=0) #rentetan bobot ((kebawah))
         
         #jacobian, I dont think I need this dsynapse. Ganti concatenatenya dngan bobot update
         dsynapse_0 = np.reshape(synapse_0_update,(1,-1)) # satu dimensi baris, kolom tidak tahu berapa banyak
@@ -199,11 +222,9 @@ for i in range(epoch):
         H_transpose = H.T
 
         #%% UKF inisialisasi
-        
-        #membuat sigma_points dengan 2n+1 dengan menyimppan n(dimensi)->kolom, dan sigmapoints-> rows
-        points = MerweScaledSigmaPoints(n=18, alpha=.3, beta=2., kappa=0) #makin besar alpha, makin menyebar data[:train_data], range(train_data)
-        ukf = UKF(input_dim, output_dim, dt=0.1, hx=hx, fx=fx, points=points)
-                
+
+
+        '''        
         #---PREDIKSI---
         #Xflatten = np.reshape(trainX.shape[:,0],-1) 
         Xflatten = synapse_0_update.ravel()
@@ -235,22 +256,18 @@ for i in range(epoch):
         x_ = xp + np.dot(ukf.K,z_) #(SS!!!) (x_ = x cari di update)
         P2 = np.dot(np.dot(K,Pz),(ukf.K.T)) #(SS!!!)
         P = Pp - P2 #(SS!!!)
-                
+        
+        '''
+        #Kalman Gain
+        K = []
+        K = ukf.K
+        
         #update weight
         innovation = ((Y-layer_2).sum()/len(layer_2_error)) #selisih nilai yang diinginkan dan prediksi
-        w_concat_new = w_concat + np.dot(ukf.K,innovation)
-                 
-        '''
-            #Kalman Gain
-            K1 = np.dot(H,P)
-            K2 = np.dot(K1,H_transpose)+R
-            K3 = inv(K2)
-            K4 = np.dot(P,H_transpose) #jangan diubah karena sama
-            K = np.dot(K4,K3)        
-        '''
+        w_concat_new = w_concat + np.dot(K,innovation)
         
         #update P
-        P = ukf.P
+        P = ukf.K
             
         #assign bobot
         synapse_0 = w_concat_new[0:(input_dim*hidden_dim),0]

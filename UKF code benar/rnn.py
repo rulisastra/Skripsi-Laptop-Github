@@ -191,7 +191,8 @@ for i in range(epoch):
         synapse_0_c = np.reshape(synapse_0,(-1,1))
         synapse_h_c = np.reshape(synapse_h,(-1,1))
         synapse_1_c = np.reshape(synapse_1,(-1,1))
-        
+ 
+       
         '''
         #reshape balik bobot siraj
         synapse_0 += synapse_0_update * alpha
