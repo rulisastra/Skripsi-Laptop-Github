@@ -67,7 +67,7 @@ testX, testY = createDataset(test_data, windowSize)
 #initialize neuron size
 batch_dim = trainX.shape[0] #mengambil banyak baris (n) dari trainX(n,m)
 input_dim = windowSize
-hidden_dim = 6
+hidden_dim = 2
 output_dim = 1
 
 np.random.seed(4) #random tetap walaupun kamu mengiterasi beruulang kali
@@ -93,7 +93,7 @@ mse_all = []
 
 #inisialisasi sebelum train
 jumlah_w = (input_dim*hidden_dim)+(hidden_dim*hidden_dim)+(hidden_dim*output_dim)
-Q = 1*np.identity(jumlah_w) #kovarian Noise process
+Q = 0.1*np.identity(jumlah_w) #kovarian Noise process
 R = 1*np.identity(output_dim) #Kovarian Noise measurement(observasi)
 P = 1*np.identity(jumlah_w) #kovarian estimasi vektor state
 # V = np.zeros((windowSize), dtype=int)
@@ -225,7 +225,7 @@ def mape(x,y):
     for i in range(len(y)):
         a = abs((x[i]-y[i])/x[i])
         mape.append(a)
-    mape = float((sum(mse))/len(y))*100
+    mape = float((sum(mape))/len(y))*100
     return mape
 
 def dstat(x,y):
@@ -239,7 +239,7 @@ def dstat(x,y):
 
 #%%
 
-epoch = 5
+epoch = 100
 start_time = time.time()
 for i in range(epoch):
     index = 0
@@ -351,17 +351,24 @@ y_pred = denormalize(np.reshape(y_pred,(-1,1)), data['value'], (-1,1))
 testY = denormalize(testY, data['value'], (-1,1))
 mse_pred = mse(testY,y_pred)
 rmse_pred = rmse(testY,y_pred)
+mape_pred = mape(testY,y_pred)
 mae_pred = mae(testY,y_pred)
 dstat_pred = dstat(testY,y_pred)
-scoring = [mse_pred,rmse_pred,mae_pred,dstat_pred,run_time]
+#scoring = [mse_pred,rmse_pred,mae_pred,dstat_pred,run_time]
 
-plt.plot(testY, label='true') #testY[0:50] buat plotting coba liat di catatan
-plt.plot(y_pred, label='prediction')
+
+plt.plot(testY[0:50], label='true', marker ='o') #testY[0:50] untuk plotting (catatan)
+plt.plot(y_pred[0:50], label='prediction', marker ='x')
 plt.title('RNN-UKF')
 plt.legend()
 plt.show()
 
-print(scoring)
+print("runtime : ", run_time)
+print("mse : " , mse_pred)
+print("rmse : ", rmse_pred) 
+print("mape : ", mape_pred) 
+print("mae: " , mae_pred)
+print("dstat : " , dstat_pred)
 
 #%%
 np.savetxt('bobot_input.csv', synapse_0, delimiter=',')

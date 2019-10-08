@@ -2,13 +2,11 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import time
-from numpy.linalg import inv
 from filterpy.kalman import UnscentedKalmanFilter as UKF
 from filterpy.kalman import unscented_transform, MerweScaledSigmaPoints
 
-
 #persiapan data
-data = pd.read_csv('data.csv',
+data = pd.read_csv('BTC_USD_2018-04-06_2019-09-23-CoinDesk.csv',
                     usecols=[1],
                     engine='python',
                     delimiter=',',
@@ -111,7 +109,7 @@ testX, testY = createDataset(test_data, windowSize)
 #initialize neuron size
 batch_dim = trainX.shape[0] #mengambil banyak baris (n) dari trainX(n,m)
 input_dim = windowSize
-hidden_dim = 6
+hidden_dim = 2
 output_dim = 1
 
 np.random.seed(4) #random tetap tiap iterasi
@@ -137,7 +135,7 @@ mse_all = []
 
 #inisialisasi sebelum train
 jumlah_w = (input_dim*hidden_dim)+(hidden_dim*hidden_dim)+(hidden_dim*output_dim)
-Q = 0.01*np.identity(jumlah_w) #kovarian Noise process
+Q = 1*np.identity(jumlah_w) #kovarian Noise process
 R = 1*np.identity(output_dim) #Kovarian Noise measurement(observasi)
 P = 1*np.identity(jumlah_w) #kovarian estimasi vektor state
 
@@ -152,12 +150,13 @@ def hx(x):
 
 #%%
 
-epoch = 5
+epoch = 50
+alpha = 0.002
 start_time = time.time()
 for i in range(epoch):
     index = 0
     layer_2_value = []
-    context_layer = np.full((batch_dim,hidden_dim),0)
+    context_layer = np.full((batch_dim,hidden_dim),0) #semua 0
     layer_h_deltas = np.zeros(hidden_dim)
     while(index+batch_dim<=trainX.shape[0]):
         X = trainX[index:index+batch_dim,:]
@@ -180,6 +179,9 @@ for i in range(epoch):
         #layer 1 delta (masuk ke hidden layer dari context layer)
         layer_1_delta = (np.dot(layer_h_deltas,synapse_h.T) + np.dot(layer_2_delta,synapse_1.T)) * dtanh(layer_1)
     
+        points = MerweScaledSigmaPoints(n=18, alpha=.3, beta=2., kappa=0) #makin besar alpha, makin menyebar data[:train_data], range(train_data)
+        ukf = UKF(input_dim, output_dim, dt=0.1, hx=hx, fx=fx, points=points)
+         
         #calculate weight update
         synapse_1_update = np.dot(np.atleast_2d(layer_1).T,(layer_2_delta))
         synapse_h_update = np.dot(np.atleast_2d(context_layer).T,(layer_1_delta))
@@ -189,78 +191,18 @@ for i in range(epoch):
         synapse_0_c = np.reshape(synapse_0,(-1,1))
         synapse_h_c = np.reshape(synapse_h,(-1,1))
         synapse_1_c = np.reshape(synapse_1,(-1,1))
-        w_concat = np.concatenate((synapse_0_c,synapse_h_c,synapse_1_c), axis=0) #rentetan bobot
         
-        #jacobian, I dont think I need this dsynapse. Ganti concatenatenya dngan bobot update
-        dsynapse_0 = np.reshape(synapse_0_update,(1,-1)) # satu dimensi baris, kolom tidak tahu berapa banyak
-        dsynapse_h = np.reshape(synapse_h_update,(1,-1))
-        dsynapse_1 = np.reshape(synapse_1_update,(1,-1))
-        H = np.concatenate((dsynapse_0,dsynapse_h,dsynapse_1), axis=1) # T_ sama dengan H di EKF
-        H_transpose = H.T
-
-        #%% UKF inisialisasi
-        
-        #membuat sigma_points dengan 2n+1 dengan menyimppan n(dimensi)->kolom, dan sigmapoints-> rows
-        points = MerweScaledSigmaPoints(n=18, alpha=.3, beta=2., kappa=0) #makin besar alpha, makin menyebar data[:train_data], range(train_data)
-        ukf = UKF(input_dim, output_dim, dt=0.1, hx=hx, fx=fx, points=points)
-                
-        #---PREDIKSI---
-        #Xflatten = np.reshape(trainX.shape[:,0],-1) 
-        Xflatten = synapse_0_update.ravel()
-        sigmas = points.sigma_points(Xflatten, ukf.P)
-        for i in range(points.num_sigmas):
-            ukf.sigmas_f[i] = ukf.fx(sigmas[i],dt=0.1)
-        
-        xp,Pp = unscented_transform(ukf.sigmas_f, points.Wm, points.Wc, Q)
-
-        #---UPDATE---
-        #transform sigma points ke measurement space
-        for i in range(points.num_sigmas):
-            ukf.sigmas_h[i] = ukf.hx(ukf.sigmas_f[i])
-                        
-        #mean dan kovarian yang di transformasi unscented (UT)
-        zp, Pz = unscented_transform(ukf.sigmas_h, points.Wm, points.Wc, R)
-        
-        #hitung cross variance state dan measurement
-        Pxz = np.zeros(input_dim,output_dim) #harusnya -> np.zeros(dim_x,dim_z)
-        for i in range(points.num_sigmas):
-            Pxz += points.Wc[i] * np.outer(ukf.sigmas_f[i] - xp, ukf.sigmas_h[i] - zp)
-            
-        #Kalman gain
-        K = np.dot(Pxz,inv(Pz)) #(SS!!!)
-    
-        #update P
-        z = i + np.random()*.5
-        z_ = z-zp #(SS!!!)(z_ -> tambahan) z = i + randn()*.5
-        x_ = xp + np.dot(ukf.K,z_) #(SS!!!) (x_ = x cari di update)
-        P2 = np.dot(np.dot(K,Pz),(ukf.K.T)) #(SS!!!)
-        P = Pp - P2 #(SS!!!)
-                
-        #update weight
-        innovation = ((Y-layer_2).sum()/len(layer_2_error)) #selisih nilai yang diinginkan dan prediksi
-        w_concat_new = w_concat + np.dot(ukf.K,innovation)
-                 
         '''
-            #Kalman Gain
-            K1 = np.dot(H,P)
-            K2 = np.dot(K1,H_transpose)+R
-            K3 = inv(K2)
-            K4 = np.dot(P,H_transpose) #jangan diubah karena sama
-            K = np.dot(K4,K3)        
+        #reshape balik bobot siraj
+        synapse_0 += synapse_0_update * alpha
+        synapse_1 += synapse_1_update * alpha
+        synapse_h += synapse_h_update * alpha   
         '''
-        
-        #update P
-        P = ukf.P
-            
-        #assign bobot
-        synapse_0 = w_concat_new[0:(input_dim*hidden_dim),0]
-        synapse_h = w_concat_new[(input_dim*hidden_dim):(input_dim*hidden_dim)+(hidden_dim*hidden_dim),0]
-        synapse_1 = w_concat_new[(input_dim*hidden_dim)+(hidden_dim*hidden_dim):w_concat_new.shape[0],0]
         
         #reshape balik bobot
         synapse_0 = np.reshape(synapse_0,(input_dim,hidden_dim))
-        synapse_h = np.reshape(synapse_h,(hidden_dim,hidden_dim))
-        synapse_1 = np.reshape(synapse_1,(hidden_dim,output_dim))
+        synapse_h = np.reshape(synapse_h,(hidden_dim,hidden_dim)) # * alpha
+        synapse_1 = np.reshape(synapse_1,(hidden_dim,output_dim)) 
     
         #reset update
         synapse_0_update *= 0
