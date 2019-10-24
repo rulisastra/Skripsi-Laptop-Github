@@ -1,4 +1,5 @@
 import pandas as pd
+from pykalman import UnscentedKalmanFilter as ukF
 import numpy as np
 import matplotlib.pyplot as plt
 import time
@@ -151,7 +152,14 @@ def hx(x):
 
 #membuat sigma_points dengan 2n+1 dengan menyimppan n(dimensi)->kolom, dan sigmapoints-> rows
 points = MerweScaledSigmaPoints(n=18, alpha=.3, beta=2., kappa=0) #makin besar alpha, makin menyebar data[:train_data], range(train_data)
-ukf = UKF(jumlah_w, input_dim, dt=0.1, hx=hx, fx=fx, points=points)
+ukf = UKF(jumlah_w, input_dim, dt=1., hx=hx, fx=fx, points=points)
+''' 
+dim_x = jumlah_w
+dim_z = imput_dim
+dt = besar time steps in seconds
+
+'''
+Ke = ukf.K
 
 '''
 dim_x = int
@@ -259,7 +267,7 @@ for i in range(epoch):
         
         '''
         #Kalman Gain
-        K = []
+        # K = []
         K = ukf.K
         
         #update weight
@@ -267,7 +275,7 @@ for i in range(epoch):
         w_concat_new = w_concat + np.dot(K,innovation)
         
         #update P
-        P = ukf.K
+        P = K
             
         #assign bobot
         synapse_0 = w_concat_new[0:(input_dim*hidden_dim),0]
