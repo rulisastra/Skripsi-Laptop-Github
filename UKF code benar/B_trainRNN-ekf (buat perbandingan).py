@@ -5,7 +5,7 @@ import time
 from numpy.linalg import inv
 
 #persiapan data
-data = pd.read_csv('BTC_USD_2018-04-06_2019-09-23-CoinDesk.csv',
+data = pd.read_csv('data.csv',
                     usecols=[1],
                     engine='python',
                     delimiter=',',
@@ -98,101 +98,100 @@ R = 1*np.identity(output_dim) #Kovarian Noise measurement(observasi)
 P = 1*np.identity(jumlah_w) #kovarian estimasi vektor state
 # V = np.zeros((windowSize), dtype=int)
 
-# =============================================================================
-# #%% ----------------------------------------------------------
-# #UNSCENTED KALMAN FILTER (ALL)
-# 
-# #inisialisasi faktor skalar
-# #m = np.sum(trainY)
-# #L = np.sum(trainX)
-# 
-# #inisialisasi PARAMETER -> van der merwe suggest using beta =2 kappa = 3-n
-# beta = 2
-# alpha = np.random.random(1)
-# n = 1 #n = dimensi dari x
-# kappa = 3-n #atau 0 oleh dash 2014
-# 
-# ##WEIGHTS
-# lambda_ = alpha**2 * (n + kappa) - n
-# Wc = np.full(2*n + 1,  1. / (2*(n + lambda_)))
-# Wm = np.full(2*n + 1,  1. / (2*(n + lambda_)))
-# Wc[0] = lambda_ / (n + lambda_) + (1. - alpha**2 + beta)
-# Wm[0] = lambda_ / (n + lambda_)
-# 
-# #SIGMA POINTS masih salaah
-# #a
-# s = np.sqrt(data) #data atau x??? data kok
-# np.dot(s, s.T)
-# 
-# sigmas = np.zeros((2*n+1, n))
-# U = np.sqrt((n+lambda_)*P) # sqrt
-# 
-# def sigmaPoint(data,X,k):
-#     sigmas[0] = X
-#     for k in range(n):
-#         sigmas[k+1]   = X + U[k]
-#         sigmas[n+k+1] = X - U[k]
-#         x = np.dot(Wm, sigmas) #jumlah sigma mean atau means
-#         return np.dot(x,n)
-#     
-# x = np.dot(Wm, sigmas)
-# n = sigmas.shape
-# sg = sigmaPoint
-# 
-# def P_(kmax,n,k):
-#     P = np.zeros((n, n))
-#     for i in range(kmax):
-#         y = sigmas[i] - x
-#         P += Wc[i] * np.outer(y, y) 
-#         P += Q
-#         y = (sigmas[k] - x).reshape(kmax, 1) # convert into 2D array
-#         P += Wc[k] * np.dot(y, y.T) #P += Wc[K] * np.dot(y, y.T)
-#         return()
-# 
-# #PREDIKSI (STEP)
-# def predict(sigma_points_fn):
-#     """ Performs the predict step of the UKF. On return, 
-#     self.xp and self.Pp contain the predicted state (xp) 
-#     and covariance (Pp). 'p' stands for prediction.
-#     """
-# 
-#     # calculate sigma points for given mean and covariance
-#     sigmas = sigma_points_fn(x,P)
-# 
-#     for i in range(sigmas):
-#         sigmas_f[i] = fx(sigmas[i])
-# 
-#     xp,Pp = (sigmas_f,Wm,Wc,Q).T #transform
-#     return(predict)
-#     
-# predict
-# 
-# #UPDATE STEP
-# def update(z):
-#     # rename for readability
-#     sigmas_f = sigmas_f
-#     sigmas_h = sigmas_h
-# 
-#     # transform sigma points into measurement space
-#     for i in range(self._num_sigmas):
-#         sigmas_h[i] = self.hx(sigmas_f[i])
-# 
-#     # mean and covariance of prediction passed through UT
-#     zp, Pz = (sigmas_h, self.Wm, self.Wc, self.R).T #transform
-# 
-#     # compute cross variance of the state and the measurements
-#     Pxz = np.zeros((self._dim_x, self._dim_z))
-#     for i in range(self._num_sigmas):
-#         Pxz += self.Wc[i] * np.outer(sigmas_f[i] - self.xp,
-#                                     sigmas_h[i] - zp)
-# 
-#     K = np.dot(Pxz, np.linalg.inv(Pz)) # Kalman gain
-# 
-#     self.x = self.xp + np.dot(K, z-zp)
-#     self.P = self.Pp - np.dot(np.dot(K, Pz),np.dot(K.T))
-#     return np.array(self.x),np.array(self.P)
-# 
-# =============================================================================
+'''
+#UNSCENTED KALMAN FILTER (ALL)
+
+#inisialisasi faktor skalar
+#m = np.sum(trainY)
+#L = np.sum(trainX)
+
+#inisialisasi PARAMETER -> van der merwe suggest using beta =2 kappa = 3-n
+beta = 2
+alpha = np.random.random(1)
+n = 1 #n = dimensi dari x
+kappa = 3-n #atau 0 oleh dash 2014
+
+##WEIGHTS
+lambda_ = alpha**2 * (n + kappa) - n
+Wc = np.full(2*n + 1,  1. / (2*(n + lambda_)))
+Wm = np.full(2*n + 1,  1. / (2*(n + lambda_)))
+Wc[0] = lambda_ / (n + lambda_) + (1. - alpha**2 + beta)
+Wm[0] = lambda_ / (n + lambda_)
+
+#SIGMA POINTS masih salaah
+#a
+s = np.sqrt(data) #data atau x??? data kok
+np.dot(s, s.T)
+
+sigmas = np.zeros((2*n+1, n))
+U = np.sqrt((n+lambda_)*P) # sqrt
+
+def sigmaPoint(data,X,k):
+    sigmas[0] = X
+    for k in range(n):
+        sigmas[k+1]   = X + U[k]
+        sigmas[n+k+1] = X - U[k]
+        x = np.dot(Wm, sigmas) #jumlah sigma mean atau means
+        return np.dot(x,n)
+    
+x = np.dot(Wm, sigmas)
+n = sigmas.shape
+sg = sigmaPoint
+
+def P_(kmax,n,k):
+    P = np.zeros((n, n))
+    for i in range(kmax):
+        y = sigmas[i] - x
+        P += Wc[i] * np.outer(y, y) 
+        P += Q
+        y = (sigmas[k] - x).reshape(kmax, 1) # convert into 2D array
+        P += Wc[k] * np.dot(y, y.T) #P += Wc[K] * np.dot(y, y.T)
+        return()
+
+#PREDIKSI (STEP)
+def predict(sigma_points_fn):
+    """ Performs the predict step of the UKF. On return, 
+    self.xp and self.Pp contain the predicted state (xp) 
+    and covariance (Pp). 'p' stands for prediction.
+    """
+
+    # calculate sigma points for given mean and covariance
+    sigmas = sigma_points_fn(x,P)
+
+    for i in range(sigmas):
+        sigmas_f[i] = fx(sigmas[i])
+
+    xp,Pp = (sigmas_f,Wm,Wc,Q).T #transform
+    return(predict)
+    
+predict
+
+#UPDATE STEP
+def update(z):
+    # rename for readability
+    sigmas_f = sigmas_f
+    sigmas_h = sigmas_h
+
+    # transform sigma points into measurement space
+    for i in range(self._num_sigmas):
+        sigmas_h[i] = self.hx(sigmas_f[i])
+
+    # mean and covariance of prediction passed through UT
+    zp, Pz = (sigmas_h, self.Wm, self.Wc, self.R).T #transform
+
+    # compute cross variance of the state and the measurements
+    Pxz = np.zeros((self._dim_x, self._dim_z))
+    for i in range(self._num_sigmas):
+        Pxz += self.Wc[i] * np.outer(sigmas_f[i] - self.xp,
+                                    sigmas_h[i] - zp)
+
+    K = np.dot(Pxz, np.linalg.inv(Pz)) # Kalman gain
+
+    self.x = self.xp + np.dot(K, z-zp)
+    self.P = self.Pp - np.dot(np.dot(K, Pz),np.dot(K.T))
+    return np.array(self.x),np.array(self.P)
+'''
+
 #%%
 
 def mse(x,y):

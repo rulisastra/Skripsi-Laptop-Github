@@ -118,15 +118,14 @@ for j in range(10000):
     # print out progress
     if(j % 1000 == 0):
         print (overallError,d,c)
-# =============================================================================
-#         print (d)
-#         print (c)
-# =============================================================================
-# =============================================================================
-#         print "Error:" + overallError
-#         print "Pred:" + d
-#         print "True:" + c
-# =============================================================================
+        
+        '''
+        print (d)
+        print (c)
+        print "Error:" + overallError
+        print "Pred:" + d
+        print "True:" + c
+        '''
        
         out = 0
         for index,x in enumerate(reversed(d)):
