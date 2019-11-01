@@ -1,11 +1,13 @@
 import pandas as pd
-from pykalman import UnscentedKalmanFilter as ukF
+#from pykalman import UnscentedKalmanFilter as ukF
 import numpy as np
 import matplotlib.pyplot as plt
 import time
 #from numpy.linalg import inv
 from filterpy.kalman import UnscentedKalmanFilter as UKF
 from filterpy.kalman import MerweScaledSigmaPoints #,unscented_transform
+
+#%%
 
 #persiapan data
 data = pd.read_csv('data.csv',
@@ -141,6 +143,8 @@ Q = 0.01*np.identity(jumlah_w) #kovarian Noise process
 R = 1*np.identity(output_dim) #Kovarian Noise measurement(observasi)
 P = 1*np.identity(jumlah_w) #kovarian estimasi vektor state
     
+#%%  
+
 def fx(x, dt):
     xout = np.empty_like(x)
     xout[0] = x[1] * dt + x[0]
@@ -150,39 +154,87 @@ def fx(x, dt):
 def hx(x):
     return x[:1] # return position [x] 
 
-#membuat sigma_points dengan 2n+1 dengan menyimppan n(dimensi)->kolom, dan sigmapoints-> rows
-points = MerweScaledSigmaPoints(n=18, alpha=.3, beta=2., kappa=0) #makin besar alpha, makin menyebar data[:train_data], range(train_data)
-ukf = UKF(jumlah_w, input_dim, dt=1., hx=hx, fx=fx, points=points)
+L = trainX.shape[1] #mengambil jumlah kolom dari train X
+points = MerweScaledSigmaPoints(n=L, alpha=.3, beta=2., kappa=0) #makin besar alpha, makin menyebar data[:train_data], range(train_data)
+ukf = UKF(L, input_dim, dt=1., hx=hx, fx=fx, points=points) # sigma = points
+# dim_x = jumlah_w
+# dim_z = imput_dim
+# points[i] # untuk setiap point
+
+n = L
+sigmas = np.zeros((2*n+1,n))
+
 ''' 
-dim_x = jumlah_w
-dim_z = imput_dim
-dt = besar time steps in seconds
-
-'''
-Ke = ukf.K
-
-'''
-dim_x = int
-        banyaknya variabel dar states
-        ex : if you are tracking the position and velocity of an object in two
-            dimensions, dim_x would be 4.
-        
-        di library,         self.P = eye(dim_x)
-        di kodingan dudi... P = 1*np.identity(jumlah_w) #kovarian estimasi vektor state
-        
-dim_z = int 
-        banyaknya input di measurement. For example, 
-        ex : if the sensor provides you with position in (x,y), dim_z would be 2.
+    n = L = jumlah kolom (dimensi)
     
-            This is for convience, so everything is sized correctly on
-            creation. If you are using multiple sensors the size of `z` can
-            change based on the sensor. Just provide the appropriate hx function
+    SigmaPoints = menggunakan MerweScaledSigmaPoints 2n+1 rows dimana:
+               n(dimensi) <- kolom,dan
+               sigmapoints <- baris (rows) untuk setiap satu SIGMA POINT
+               example : Jika n = 3, maka ada 3 kolom dan 7 baris
 
+    Wm = bobot dari perhitungan mean
+    Wc = bobot dari perhitungan kovarian
+    
+    dim_x = int
+            banyaknya variabel dari states
+            ex : if you are tracking the position and velocity of an object in two
+                dimensions, dim_x would be 4.
+            
+            di library,         self.P = eye(dim_x)
+            di kodingan dudi... P = 1*np.identity(jumlah_w) #kovarian estimasi vektor state
+            
+    dim_z = int 
+            banyaknya input di measurement. For example, 
+            ex : if the sensor provides you with position in (x,y), dim_z would be 2.
+        
+                This is for convience, so everything is sized correctly on
+                creation. If you are using multiple sensors the size of `z` can
+                change based on the sensor. Just provide the appropriate hx function
+    
+    dt = besar time steps in seconds
+
+    BATCH PROCESSING : karena kalman filter yg rekursf, maka digunakan batch mode dimna semua measurement di filter sekaligus
+    
 '''
 
+zs = trainX
+batchFilter = ukf.batch_filter(zs)
 
-#%%
+'''
+#---PREDIKSI---
+    #Xflatten = synapse_0_update.ravel() # Xflatten = np.reshape(trainX.shape[:,0],-1) 
+  
+    sigmas = points.sigma_points(Xflatten, ukf.P)
+    for i in range(points.num_sigmas):
+                    ukf.sigmas_f[i] = ukf.fx(sigmas[i],dt=0.1)
+                
+    xp,Pp = unscented_transform(ukf.sigmas_f, points.Wm, points.Wc, Q)
+                
+#---UPDATE---
+# transform sigma points ke measurement space
+    for i in range(points.num_sigmas):
+                    ukf.sigmas_h[i] = ukf.hx(ukf.sigmas_f[i])
+                                
+                #mean dan kovarian yang di transformasi unscented (UT)
+    zp, Pz = unscented_transform(ukf.sigmas_h, points.Wm, points.Wc, R)
+                
+                #hitung cross variance state dan measurement
+    Pxz = np.zeros(input_dim,output_dim) #harusnya -> np.zeros(dim_x,dim_z)
+    for i in range(points.num_sigmas):
+                    Pxz += points.Wc[i] * np.outer(ukf.sigmas_f[i] - xp, ukf.sigmas_h[i] - zp)
+                    
+    #Kalman gain
+    K = np.dot(Pxz,inv(Pz))
+    
+    #update P
+    z = i + np.random()*.5
+    z_ = z-zp #(SS!!!)(z_ -> tambahan) z = i + randn()*.5
+    x_ = xp + np.dot(ukf.K,z_) # (SS!!!) (x_ = x cari di update)
+    P2 = np.dot(np.dot(K,Pz),(ukf.K.T))
+    P = Pp - P2  
+'''
 
+#%% eksekusi epoch
 epoch = 5
 start_time = time.time()
 for i in range(epoch):
@@ -228,54 +280,13 @@ for i in range(epoch):
         dsynapse_1 = np.reshape(synapse_1_update,(1,-1))
         H = np.concatenate((dsynapse_0,dsynapse_h,dsynapse_1), axis=1) # T_ sama dengan H di EKF
         H_transpose = H.T
-
-        #%% UKF inisialisasi
-
-
-        '''        
-        #---PREDIKSI---
-        #Xflatten = np.reshape(trainX.shape[:,0],-1) 
-        Xflatten = synapse_0_update.ravel()
-        sigmas = points.sigma_points(Xflatten, ukf.P)
-        for i in range(points.num_sigmas):
-            ukf.sigmas_f[i] = ukf.fx(sigmas[i],dt=0.1)
-        
-        xp,Pp = unscented_transform(ukf.sigmas_f, points.Wm, points.Wc, Q)
-
-        #---UPDATE---
-        #transform sigma points ke measurement space
-        for i in range(points.num_sigmas):
-            ukf.sigmas_h[i] = ukf.hx(ukf.sigmas_f[i])
-                        
-        #mean dan kovarian yang di transformasi unscented (UT)
-        zp, Pz = unscented_transform(ukf.sigmas_h, points.Wm, points.Wc, R)
-        
-        #hitung cross variance state dan measurement
-        Pxz = np.zeros(input_dim,output_dim) #harusnya -> np.zeros(dim_x,dim_z)
-        for i in range(points.num_sigmas):
-            Pxz += points.Wc[i] * np.outer(ukf.sigmas_f[i] - xp, ukf.sigmas_h[i] - zp)
-            
-        #Kalman gain
-        K = np.dot(Pxz,inv(Pz)) #(SS!!!)
-    
-        #update P
-        z = i + np.random()*.5
-        z_ = z-zp #(SS!!!)(z_ -> tambahan) z = i + randn()*.5
-        x_ = xp + np.dot(ukf.K,z_) #(SS!!!) (x_ = x cari di update)
-        P2 = np.dot(np.dot(K,Pz),(ukf.K.T)) #(SS!!!)
-        P = Pp - P2 #(SS!!!)
-        
-        '''
-        #Kalman Gain
-        # K = []
-        K = ukf.K
         
         #update weight
         innovation = ((Y-layer_2).sum()/len(layer_2_error)) #selisih nilai yang diinginkan dan prediksi
-        w_concat_new = w_concat + np.dot(K,innovation)
+        w_concat_new = w_concat + np.dot(ukf.K,innovation)
         
         #update P
-        P = K
+        P = ukf.K
             
         #assign bobot
         synapse_0 = w_concat_new[0:(input_dim*hidden_dim),0]
@@ -309,7 +320,8 @@ plt.ylabel('Loss (MSE)')
 plt.legend()
 plt.show()
 
-#%%  mari kita coba prediksiiiiiii
+#%%  
+# mari dicoba prediksinya
 
 batch_predict = testX.shape[0] # mengambil banyaknya baris (n) dari testX(n,m)
 context_layer_p = np.full((batch_predict,hidden_dim),0) # return full array yg isinya (0) sebesar dimensi [batch_predict x hidden_dim]
@@ -344,7 +356,6 @@ print("rmse : ", rmse_pred)
 print("mape : ", mape_pred) 
 print("mae: " , mae_pred)
 print("dstat : " , dstat_pred)
-#%%
 
 '''
 plt.subplot(121)
@@ -354,7 +365,6 @@ plt.subplot(122)
 plt.title('Output')
 plt.scatter(w_concat_new(data[:X]), range(X), alpha=.2, s=1);
 '''
-
 
 #%%
 np.savetxt('bobot_input.csv', synapse_0, delimiter=',')
