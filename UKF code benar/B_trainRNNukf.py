@@ -144,7 +144,6 @@ R = 1*np.identity(output_dim) #Kovarian Noise measurement(observasi)
 P = 1*np.identity(jumlah_w) #kovarian estimasi vektor state
     
 #%%  
-
 def fx(x, dt):
     xout = np.empty_like(x)
     xout[0] = x[1] * dt + x[0]
