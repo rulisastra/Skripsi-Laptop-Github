@@ -272,7 +272,7 @@ for i in range(epoch):
         synapse_0_update = np.dot(X.T,(layer_1_delta))
         
         #concatenate weight
-        synapse_0_c = np.reshape(synapse_0,(-1,1))
+        synapse_0_c = np.reshape(synapse_0,(-1,1)) #reshape satu kolom kebawah
         synapse_h_c = np.reshape(synapse_h,(-1,1))
         synapse_1_c = np.reshape(synapse_1,(-1,1))
         w_concat = np.concatenate((synapse_0_c,synapse_h_c,synapse_1_c), axis=0)

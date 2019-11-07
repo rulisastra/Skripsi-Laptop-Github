@@ -64,6 +64,7 @@ trainX, trainY = createDataset(train_data,windowSize)
 testX, testY = createDataset(test_data, windowSize)
 
 #initialize neuron size
+alpha = 0.1
 batch_dim = trainX.shape[0] #mengambil banyak baris (n) dari trainX(n,m)
 input_dim = windowSize
 hidden_dim = 6
@@ -92,10 +93,6 @@ mse_all = []
 
 #inisialisasi sebelum train
 jumlah_w = (input_dim*hidden_dim)+(hidden_dim*hidden_dim)+(hidden_dim*output_dim)
-Q = 1*np.identity(jumlah_w) #kovarian Noise process
-R = 1*np.identity(output_dim) #Kovarian Noise measurement(observasi)
-P = 1*np.identity(jumlah_w) #kovarian estimasi vektor state
-
 
 def mse(x,y):
     mse = []
@@ -127,7 +124,7 @@ def mape(x,y):
     for i in range(len(y)):
         a = abs((x[i]-y[i])/x[i])
         mape.append(a)
-    mape = float((sum(mse))/len(y))*100
+    mape = float((sum(mape))/len(y))*100
     return mape
 
 def dstat(x,y):
@@ -140,7 +137,6 @@ def dstat(x,y):
     return float(Dstat)
 
 #%%
-
 epoch = 5
 start_time = time.time()
 for i in range(epoch):
@@ -161,12 +157,13 @@ for i in range(epoch):
         layer_2_value.append(layer_2)
     
         #hitung error output
+        #layer_2_error = Y - layer_2
         layer_2_error = layer_2 - Y[:,None] #problemnya, y diganti dr Y matrix
     
-        #layer 2 deltas (masuk ke context layer dari hidden layer)
+        #error di output layer -> layer 2 deltas (masuk ke context layer dari hidden layer)
         layer_2_delta = layer_2_error*dtanh(layer_2)
     
-        #layer 1 delta (masuk ke hidden layer dari context layer)
+        #error di hidden layer -> layer 1 delta (masuk ke hidden layer dari context layer)
         layer_1_delta = (np.dot(layer_h_deltas,synapse_h.T) + np.dot(layer_2_delta,synapse_1.T)) * dtanh(layer_1)
     
         #calculate weight update
@@ -182,12 +179,18 @@ for i in range(epoch):
                 
         #update weight
         innovation = ((Y-layer_2).sum()/len(layer_2_error))
-        
-        #assign bobot
+        ''' 
+        #assign bobot versi siraj
+        synapse_0 += synapse_0_update * alpha
+        synapse_1 += synapse_1_update * alpha
+        synapse_h += synapse_h_update * alpha    
+    
+        '''
+        #assign bobot versi ekf
         synapse_0 = w_concat[0:(input_dim*hidden_dim),0]
         synapse_h = w_concat[(input_dim*hidden_dim):(input_dim*hidden_dim)+(hidden_dim*hidden_dim),0]
         synapse_1 = w_concat[(input_dim*hidden_dim)+(hidden_dim*hidden_dim):w_concat.shape[0],0]
-        
+
         #reshape balik bobot
         synapse_0 = np.reshape(synapse_0,(input_dim,hidden_dim))
         synapse_h = np.reshape(synapse_h,(hidden_dim,hidden_dim))
@@ -234,16 +237,26 @@ testY = denormalize(testY, data['value'], (-1,1))
 mse_pred = mse(testY,y_pred)
 rmse_pred = rmse(testY,y_pred)
 mae_pred = mae(testY,y_pred)
+mape_pred = mape(testY,y_pred)
 dstat_pred = dstat(testY,y_pred)
 scoring = [mse_pred,rmse_pred,mae_pred,dstat_pred,run_time]
 
 plt.plot(testY, label='true') #testY[0:50] buat plotting coba liat di catatan
 plt.plot(y_pred, label='prediction')
+plt.xlabel('Data ke-')
+plt.ylabel('Harga')
 plt.title('RNN-UKF')
 plt.legend()
 plt.show()
 
-print(scoring)
+#scoring = [mse_pred,rmse_pred,mae_pred,dstat_pred,run_time]
+print("runtime : ", run_time)
+print("mse : " , mse_pred)
+print("rmse : ", rmse_pred) 
+print("mape : ", mape_pred) 
+print("mae: " , mae_pred)
+print("dstat : " , dstat_pred)
+
 
 #%%
 np.savetxt('bobot_input.csv', synapse_0, delimiter=',')

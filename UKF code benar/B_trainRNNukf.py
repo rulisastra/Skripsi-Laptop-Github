@@ -256,10 +256,10 @@ for i in range(epoch):
         #hitung error output
         layer_2_error = layer_2 - Y[:,None] #problemnya, y diganti dr Y matrix
     
-        #layer 2 deltas (masuk ke context layer dari hidden layer)
+        # error di output layer -> layer 2 deltas (masuk ke context layer dari hidden layer)
         layer_2_delta = layer_2_error*dtanh(layer_2)
     
-        #layer 1 delta (masuk ke hidden layer dari context layer)
+        # error di hidden layer -> layer 1 delta (masuk ke hidden layer dari context layer)
         layer_1_delta = (np.dot(layer_h_deltas,synapse_h.T) + np.dot(layer_2_delta,synapse_1.T)) * dtanh(layer_1)
     
         #calculate weight update
@@ -344,6 +344,8 @@ dstat_pred = dstat(testY,y_pred)
 
 plt.plot(testY[0:50], label='true', marker ='o') #testY[0:50] untuk plotting (catatan)
 plt.plot(y_pred[0:50], label='prediction', marker ='x')
+plt.xlabel('Data ke-')
+plt.ylabel('Harga')
 plt.title('RNN-UKF')
 plt.legend()
 plt.show()
