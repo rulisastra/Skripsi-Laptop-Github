@@ -59,7 +59,7 @@ for j in range(10000):
     overallError = 0
     
     layer_2_deltas = list()
-    layer_1_values = list()
+    layer_1_values = list() # context layer recurrent sebelumnya (setiap timestep)
     layer_1_values.append(np.zeros(hidden_dim))
     
     # moving along the positions in the binary encoding
@@ -71,6 +71,7 @@ for j in range(10000):
 
         # hidden layer (input ~+ prev_hidden)
         layer_1 = sigmoid(np.dot(X,synapse_0) + np.dot(layer_1_values[-1],synapse_h))
+        # [-1] artinya ambil nilai "paling akhir" dr list array
 
         # output layer (new binary representation)
         layer_2 = sigmoid(np.dot(layer_1,synapse_1))
@@ -95,7 +96,7 @@ for j in range(10000):
         prev_layer_1 = layer_1_values[-position-2]
         
         # error at output layer
-        layer_2_delta = layer_2_deltas[-position-1]
+        layer_2_delta = layer_2_deltas[-position-1] # mengambil value terakhir di array layer_2_deltas
         # error at hidden layer
         layer_1_delta = (future_layer_1_delta.dot(synapse_h.T) + layer_2_delta.dot(synapse_1.T)) * sigmoid_output_to_derivative(layer_1)
 

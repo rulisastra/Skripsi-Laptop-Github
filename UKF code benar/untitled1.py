@@ -1,9 +1,9 @@
 import pandas as pd
-import numpy as np
+import copy, numpy as np
 import matplotlib.pyplot as plt
 import time
 
-#persiapan data
+#%% persiapan data
 data = pd.read_csv('data.csv',
                     usecols=[1],
                     engine='python',
@@ -26,6 +26,13 @@ def pisahData(data,a,b):
         test = data[train_size-1:len(data)]
      return np.array(train),np.array(test)
 
+#fungsi aktivasi dan turunannya
+def tanh(x):
+    return (1-np.exp(-2*x))/(1+np.exp(-2*x))
+
+def dtanh(x):
+    return (1-tanh(x)**2)
+
 def normalize(data, scale):
     normalized = []
     for i in range(len(data)):
@@ -42,14 +49,15 @@ def denormalize(normalized, data, scale):
         denormalized.append(a)
     return np.array(denormalized)
 
-
+# normalisasi dengan data satu kolom kebawah
 data_raw = normalize(data['value'],(-1,1))
 
+# pembagian data latih dan test
 train_data, test_data = pisahData(data_raw, 0.7, 0.3)
 train_data = train_data.reshape(-1,1) #reshape data dengan range -1,1 -> satu kolom kebawah
 test_data = test_data.reshape(-1,1)
 
-#createwindowSize =3 untuk input
+# createwindowSize =3 untuk input
 def createDataset(data, windowSize):
     dataX, dataY = [],[]
     for i in range(len(data)-windowSize):
@@ -63,37 +71,32 @@ windowSize = 3
 trainX, trainY = createDataset(train_data,windowSize)
 testX, testY = createDataset(test_data, windowSize)
 
-#initialize neuron size
+#%% PELATIHAN ====  gunain trainX & trainY ====
+
+# INISIALISASI banyaknya neuron setiap layer 
 alpha = 0.1
-batch_dim = trainX.shape[0] #mengambil banyak baris (n) dari trainX(n,m)
+batch_dim = trainX.shape[0] # ambil jumlah baris (n) dari trainX(n,m)
 input_dim = windowSize
 hidden_dim = 6
 output_dim = 1
-
 np.random.seed(4) #random tetap walaupun kamu mengiterasi beruulang kali
 
-#fungsi aktivasi dan turunannya
-def tanh(x):
-    return (1-np.exp(-2*x))/(1+np.exp(-2*x))
-
-def dtanh(x):
-    return (1-tanh(x)**2)
-
-#inisialisasi random BOBOOOTT awal JST dengan random.random ->> interval [0,1]
-synapse_0 = 2*np.random.random((input_dim,hidden_dim)) - 1 #inisialisasi
-synapse_h = 2*np.random.random((hidden_dim,hidden_dim)) - 1 #bobotjaringan dg
-synapse_1 = 2*np.random.random((hidden_dim,output_dim)) - 1 #interval[-1,1]
+# BOBOT === inisialisasi bobot awal (baris,kolom)
+synapse_0 = 2*np.random.random((input_dim,hidden_dim)) - 1 # inisialisasi random bobot awal
+synapse_h = 2*np.random.random((hidden_dim,hidden_dim)) - 1 # dengan interval [-1,1]
+synapse_1 = 2*np.random.random((hidden_dim,output_dim)) - 1 # random.random ->> interval [0,1]
 
 synapse_0_update = np.zeros_like(synapse_0) #meng-0 kan semua isi array sesuai shape dr variabel (synapse_0)
 synapse_1_update = np.zeros_like(synapse_1)
 synapse_h_update = np.zeros_like(synapse_h)
 
-#log mse tiap epoch
+# log mse tiap epoch
 mse_all = []
 
 #inisialisasi sebelum train
 jumlah_w = (input_dim*hidden_dim)+(hidden_dim*hidden_dim)+(hidden_dim*output_dim)
 
+#%% EVALUASI ====
 def mse(x,y):
     mse = []
     for i in range(len(y)):
@@ -136,33 +139,43 @@ def dstat(x,y):
     Dstat = (1/float(n-2))*float(dstat)*100
     return float(Dstat)
 
-#%%
+#%% MULAI EPOCH ============ PELATIHAN ===================
+
 epoch = 5
 start_time = time.time()
 for i in range(epoch):
     index = 0
+    overallError = 0
     layer_2_value = []
-    context_layer = np.full((batch_dim,hidden_dim),0)
-    layer_h_deltas = np.zeros(hidden_dim)
+    layer_2_deltas = list()
+    layer_1_values = list() # context layer recurrent sebelumnya (setiap timestep)
+    context_layer = np.full((batch_dim,hidden_dim),0) 
+    layer_h_deltas = np.zeros(hidden_dim) # context layer (sebelumnya)
     while(index+batch_dim<=trainX.shape[0]):
+        # input dan output
         X = trainX[index:index+batch_dim,:]
         Y = trainY[index:index+batch_dim]
         index = index+batch_dim
 
-        # forward pass -> input to hidden
-        layer_1 = tanh(np.dot(X,synapse_0)+np.dot(context_layer,synapse_h))
+        # forwardpass = propagated = bawa ke ~>
+        # input ~> prev hidden
+        layer_1 = tanh(np.dot(X,synapse_0) + np.dot(context_layer,synapse_h))
     
-        #hidden to output
+        # hidden ~> output
         layer_2 = tanh(np.dot(layer_1,synapse_1))
         layer_2_value.append(layer_2)
     
-        #hitung error output
+        # hitung error output
         #layer_2_error = Y - layer_2
         layer_2_error = layer_2 - Y[:,None] #problemnya, y diganti dr Y matrix
     
         #error di output layer -> layer 2 deltas (masuk ke context layer dari hidden layer)
         layer_2_delta = layer_2_error*dtanh(layer_2)
-    
+        overallError += np.abs(layer_2_error[0])
+        
+        # store hidden layer so we can use it in the next timestep
+        context_layer.append(copy.deepcopy(layer_1))
+ 
         #error di hidden layer -> layer 1 delta (masuk ke hidden layer dari context layer)
         layer_1_delta = (np.dot(layer_h_deltas,synapse_h.T) + np.dot(layer_2_delta,synapse_1.T)) * dtanh(layer_1)
     
@@ -210,7 +223,7 @@ for i in range(epoch):
     mse_all.append(mse_epoch)
 run_time = time.time() - start_time
 
-#%%
+#%% seberapa besar lossnya???
 plt.plot(mse_all,label='loss')
 plt.title('Loss (MSE)')
 plt.xlabel('Epoch')
@@ -218,11 +231,11 @@ plt.ylabel('Loss (MSE)')
 plt.legend()
 plt.show()
 
-#%%  mari kita coba prediksiiiiiii
+#%% mari coba ============ PREDIKSI ===================
 
 batch_predict = testX.shape[0] # mengambil banyaknya baris (n) dari testX(n,m)
 context_layer_p = np.full((batch_predict,hidden_dim),0) # return full array yg isinya (0) sebesar dimensi [batch_predict x hidden_dim]
-y_pred = [] # hasil output y prediksi
+y_pred = [] # hasil akhir Y prediksi
 index = 0
 while(index+batch_predict<=testX.shape[0]):
     X = testX[index:index+batch_predict,:]
@@ -265,4 +278,3 @@ np.savetxt('bobot_output.csv', synapse_1, delimiter=',')
 np.savetxt('loss_ukf.csv', mse_all, delimiter=';')
 
 #%%
-
