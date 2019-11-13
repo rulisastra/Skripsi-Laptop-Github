@@ -26,7 +26,7 @@ for i in range(largest_number):
 # input variables
 alpha = 0.1
 input_dim = 2
-hidden_dim = 6
+hidden_dim = 10
 output_dim = 1
 
 
@@ -64,7 +64,7 @@ for j in range(10000):
     
     # moving along the positions in the binary encoding
     for position in range(binary_dim):
-        
+       
         # generate input and output
         X = np.array([[a[binary_dim - position - 1],b[binary_dim - position - 1]]])
         y = np.array([[c[binary_dim - position - 1]]]).T
@@ -97,6 +97,7 @@ for j in range(10000):
         
         # error at output layer
         layer_2_delta = layer_2_deltas[-position-1] # mengambil value terakhir di array layer_2_deltas
+        
         # error at hidden layer
         layer_1_delta = (future_layer_1_delta.dot(synapse_h.T) + layer_2_delta.dot(synapse_1.T)) * sigmoid_output_to_derivative(layer_1)
 
@@ -126,7 +127,6 @@ for j in range(10000):
         print "Error:" + overallError
         print "Pred:" + d
         print "True:" + c
-        '''
        
         out = 0
         for index,x in enumerate(reversed(d)):
@@ -134,4 +134,4 @@ for j in range(10000):
             l = str(a_int) + " + " + str(b_int) + " = " + str(out)
             print (l)
 
-        
+        '''

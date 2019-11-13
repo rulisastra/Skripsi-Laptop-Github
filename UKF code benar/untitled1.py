@@ -1,5 +1,5 @@
 import pandas as pd
-import copy, numpy as np
+import numpy as np
 import matplotlib.pyplot as plt
 import time
 
@@ -143,7 +143,7 @@ def dstat(x,y):
 
 epoch = 5
 start_time = time.time()
-for i in range(epoch):
+for j in range(epoch):
     index = 0
     overallError = 0
     layer_2_value = []
@@ -151,8 +151,9 @@ for i in range(epoch):
     layer_1_values = list() # context layer recurrent sebelumnya (setiap timestep)
     context_layer = np.full((batch_dim,hidden_dim),0) 
     layer_h_deltas = np.zeros(hidden_dim) # context layer (sebelumnya)
-    while(index+batch_dim<=trainX.shape[0]):
-        # input dan output
+    # while(index+batch_dim<=trainX.shape[0]):
+    for position in range(batch_dim):        
+     # input dan output
         X = trainX[index:index+batch_dim,:]
         Y = trainY[index:index+batch_dim]
         index = index+batch_dim
@@ -166,73 +167,82 @@ for i in range(epoch):
         layer_2_value.append(layer_2)
     
         # hitung error output
-        #layer_2_error = Y - layer_2
+        # layer_2_error = Y - layer_2
         layer_2_error = layer_2 - Y[:,None] #problemnya, y diganti dr Y matrix
     
-        #error di output layer -> layer 2 deltas (masuk ke context layer dari hidden layer)
+        # error di output layer -> layer 2 deltas (masuk ke context layer dari hidden layer)
         layer_2_delta = layer_2_error*dtanh(layer_2)
         overallError += np.abs(layer_2_error[0])
-        
+        '''
         # store hidden layer so we can use it in the next timestep
         context_layer.append(copy.deepcopy(layer_1))
- 
-        #error di hidden layer -> layer 1 delta (masuk ke hidden layer dari context layer)
+        '''
+        # error di hidden layer -> layer 1 delta (masuk ke hidden layer dari context layer)
         layer_1_delta = (np.dot(layer_h_deltas,synapse_h.T) + np.dot(layer_2_delta,synapse_1.T)) * dtanh(layer_1)
     
-        #calculate weight update
+        # calculate weight update
         synapse_1_update = np.dot(np.atleast_2d(layer_1).T,(layer_2_delta))
         synapse_h_update = np.dot(np.atleast_2d(context_layer).T,(layer_1_delta))
         synapse_0_update = np.dot(X.T,(layer_1_delta))
         
-        #concatenate weight
+        # concatenate weight
         synapse_0_c = np.reshape(synapse_0,(-1,1))
         synapse_h_c = np.reshape(synapse_h,(-1,1))
         synapse_1_c = np.reshape(synapse_1,(-1,1))
         w_concat = np.concatenate((synapse_0_c,synapse_h_c,synapse_1_c), axis=0)
-                
-        #update weight
+        '''                 
+        # update weight
         innovation = ((Y-layer_2).sum()/len(layer_2_error))
-        ''' 
+
         #assign bobot versi siraj
         synapse_0 += synapse_0_update * alpha
         synapse_1 += synapse_1_update * alpha
         synapse_h += synapse_h_update * alpha    
     
         '''
-        #assign bobot versi ekf
+        # assign bobot versi ekf
         synapse_0 = w_concat[0:(input_dim*hidden_dim),0]
         synapse_h = w_concat[(input_dim*hidden_dim):(input_dim*hidden_dim)+(hidden_dim*hidden_dim),0]
         synapse_1 = w_concat[(input_dim*hidden_dim)+(hidden_dim*hidden_dim):w_concat.shape[0],0]
 
-        #reshape balik bobot
+        # reshape balik bobot
         synapse_0 = np.reshape(synapse_0,(input_dim,hidden_dim))
         synapse_h = np.reshape(synapse_h,(hidden_dim,hidden_dim))
         synapse_1 = np.reshape(synapse_1,(hidden_dim,output_dim))
     
-        #reset update
+        # reset update
         synapse_0_update *= 0
         synapse_1_update *= 0
         synapse_h_update *= 0
     
-        #update context layer
+        # update context layer
         layer_h_deltas = layer_1_delta
         context_layer = layer_1
+        
+        for position in range(batch_dim):
+            
+            # print out progress
+            if(i % 1000 == 0):
+                print (layer_2_value)
     
     layer_2_value = np.reshape(layer_2_value,(-1,1))
     mse_epoch = mse(trainY,layer_2_value)
     mse_all.append(mse_epoch)
-run_time = time.time() - start_time
+    
+# run_time = time.time() - start_time
 
 #%% seberapa besar lossnya???
+'''
 plt.plot(mse_all,label='loss')
 plt.title('Loss (MSE)')
 plt.xlabel('Epoch')
 plt.ylabel('Loss (MSE)')
 plt.legend()
 plt.show()
+'''
 
 #%% mari coba ============ PREDIKSI ===================
-
+'''
 batch_predict = testX.shape[0] # mengambil banyaknya baris (n) dari testX(n,m)
 context_layer_p = np.full((batch_predict,hidden_dim),0) # return full array yg isinya (0) sebesar dimensi [batch_predict x hidden_dim]
 y_pred = [] # hasil akhir Y prediksi
@@ -277,4 +287,4 @@ np.savetxt('bobot_hidden.csv', synapse_h, delimiter=',')
 np.savetxt('bobot_output.csv', synapse_1, delimiter=',')
 np.savetxt('loss_ukf.csv', mse_all, delimiter=';')
 
-#%%
+'''
