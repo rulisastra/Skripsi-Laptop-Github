@@ -4,20 +4,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 #from numpy.linalg import inv
-from filterpy.kalman import UnscentedKalmanFilter as UKF
+from filterpy.kalman import UnscentedKalmanFilter as ukf
 from filterpy.kalman import MerweScaledSigmaPoints #,unscented_transform
 
 #%%
 
 #persiapan data
-data = pd.read_csv('data.csv',
-                    usecols=[1],
-                    engine='python',
-                    delimiter=',',
-                    decimal=".",
-                    thousands=',',
-                    header=None,
-                    names=['date','value'] )
+data = pd.read_csv('data.csv',usecols=[1],engine='python',delimiter=',',decimal=".",thousands=',',header=None,names=['date','value'] )
 data['value'] = data['value'].values
 data['value'] = data['value'].astype('float32')
 
@@ -47,8 +40,6 @@ def denormalize(normalized, data, scale):
         a = ((normalized[i]-min(scale))*(max(data)-min(data)))/(max(scale)-min(scale))+min(data)
         denormalized.append(a)
     return np.array(denormalized)
-
-
 data_raw = normalize(data['value'],(-1,1))
 
 train_data, test_data = pisahData(data_raw, 0.7, 0.3)
@@ -96,6 +87,13 @@ def dstat(x,y):
     Dstat = (1/float(n-2))*float(dstat)*100
     return float(Dstat)
 
+#fungsi aktivasi dan turunannya
+def tanh(x):
+    return (1-np.exp(-2*x))/(1+np.exp(-2*x))
+
+def dtanh(x):
+    return (1-tanh(x)**2)
+
 #createwindowSize =3 untuk input
 def createDataset(data, windowSize):
     dataX, dataY = [],[]
@@ -115,15 +113,7 @@ batch_dim = trainX.shape[0] #mengambil banyak baris (n) dari trainX(n,m)
 input_dim = windowSize
 hidden_dim = 6
 output_dim = 1
-
 np.random.seed(4) #random tetap tiap iterasi
-
-#fungsi aktivasi dan turunannya
-def tanh(x):
-    return (1-np.exp(-2*x))/(1+np.exp(-2*x))
-
-def dtanh(x):
-    return (1-tanh(x)**2)
 
 #inisialisasi random weight awal JST dengan random.random ->> interval [0,1]
 synapse_0 = 2*np.random.random((input_dim,hidden_dim)) - 1 #inisialisasi
@@ -154,8 +144,13 @@ def hx(x):
     return x[:1] # return position [x] 
 
 L = trainX.shape[1] #mengambil jumlah kolom dari train X
-points = MerweScaledSigmaPoints(n=L, alpha=.3, beta=2., kappa=0) #makin besar alpha, makin menyebar data[:train_data], range(train_data)
-ukf = UKF(L, input_dim, dt=1., hx=hx, fx=fx, points=points) # sigma = points
+points = MerweScaledSigmaPoints(2, alpha=.3, beta=2., kappa=0) #makin besar alpha, makin menyebar data[:train_data], range(train_data)
+kf = ukf(dim_x=2, dim_z=1, dt=1., hx=hx, fx=fx, points=points) # sigma = points
+kf.x = trainX
+kf.P = .2 # inisial uncertainty
+z_std = 0.1
+kf.R = np.diag([z_std**2,z_std**2])
+
 # dim_x = jumlah_w
 # dim_z = imput_dim
 # points[i] # untuk setiap point
@@ -196,8 +191,10 @@ sigmas = np.zeros((2*n+1,n))
     
 '''
 
-zs = trainX
-batchFilter = ukf.batch_filter(zs)
+# =============================================================================
+# zs = trainX
+# batchFilter = ukf.batch_filter(zs)
+# =============================================================================
 
 '''
 #---PREDIKSI---
@@ -282,10 +279,10 @@ for i in range(epoch):
         
         #update weight
         innovation = ((Y-layer_2).sum()/len(layer_2_error)) #selisih nilai yang diinginkan dan prediksi
-        w_concat_new = w_concat + np.dot(ukf.K,innovation)
+        w_concat_new = np.dot(w_concat,innovation)
         
         #update P
-        P = ukf.K
+        
             
         #assign bobot
         synapse_0 = w_concat_new[0:(input_dim*hidden_dim),0]

@@ -278,7 +278,7 @@ for i in range(epoch):
         w_concat = np.concatenate((synapse_0_c,synapse_h_c,synapse_1_c), axis=0)
         
         #jacobian
-        dsynapse_0 = np.reshape(synapse_0_update,(1,-1))
+        dsynapse_0 = np.reshape(synapse_0_update,(1,-1)) # satu baris kesamping
         dsynapse_h = np.reshape(synapse_h_update,(1,-1))
         dsynapse_1 = np.reshape(synapse_1_update,(1,-1))
         H = np.concatenate((dsynapse_0,dsynapse_h,dsynapse_1), axis=1)
