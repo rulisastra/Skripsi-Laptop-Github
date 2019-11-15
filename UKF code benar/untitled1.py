@@ -2,16 +2,11 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+from filterpy.kalman import UnscentedKalmanFilter as ukf
+from filterpy.kalman import MerweScaledSigmaPoints #,unscented_transform
 
 #%% persiapan data
-data = pd.read_csv('data.csv',
-                    usecols=[1],
-                    engine='python',
-                    delimiter=',',
-                    decimal=".",
-                    thousands=',',
-                    header=None,
-                    names=['date','value'] )
+data = pd.read_csv('data.csv',usecols=[1],engine='python',delimiter=',',decimal=".",thousands=',',header=None,names=['date','value'] )
 data['value'] = data['value'].values
 data['value'] = data['value'].astype('float32')
 
@@ -72,17 +67,12 @@ trainX, trainY = createDataset(train_data,windowSize)
 testX, testY = createDataset(test_data, windowSize)
 
 #%% PELATIHAN ====  gunain trainX & trainY ====
-
 # INISIALISASI banyaknya neuron setiap layer 
 alpha = 0.1
 batch_dim = trainX.shape[0] # ambil jumlah baris (n) dari trainX(n,m)
 input_dim = windowSize
 hidden_dim = 6
 output_dim = 1
-dim_x = trainX.shape[1]
-dim_z = 1
-
-np.random.seed(4) #random tetap walaupun kamu mengiterasi beruulang kali
 
 # BOBOT === inisialisasi bobot awal (baris,kolom)
 synapse_0 = 2*np.random.random((input_dim,hidden_dim)) - 1 # inisialisasi random bobot awal
@@ -98,6 +88,29 @@ mse_all = []
 
 #inisialisasi sebelum train
 jumlah_w = (input_dim*hidden_dim)+(hidden_dim*hidden_dim)+(hidden_dim*output_dim)
+
+#%% UKF
+def fx(x, dt):
+    xout = np.empty_like(x)
+    xout[0] = x[1] * dt + x[0]
+    xout[1] = x[1]
+    return xout
+
+def hx(x):
+    return x[:1] # return position [x] 
+
+dim_x = trainX.ndim
+dim_z = 1
+
+points = MerweScaledSigmaPoints(dim_x, alpha=.3, beta=2., kappa=0) #makin besar alpha, makin menyebar data[:train_data], range(train_data)
+kf = ukf(dim_x, dim_z=1, dt=1., hx=hx, fx=fx, points=points) # sigma = points
+kf.x = trainX
+kf.P = .2 # inisial uncertainty
+kf.R = .5
+z_std = 0.1
+
+# kf.R = np.diag([z_std**2,z_std**2])
+# sigmas = np.zeros((2*n+1,n))
 
 #%% EVALUASI ====
 def mse(x,y):
@@ -175,7 +188,6 @@ for i in range(epoch):
         layer_2_deltas.append((layer_2_error)*dtanh(layer_2))
         # error di output layer -> layer 2 deltas (masuk ke context layer dari hidden layer)
         layer_2_delta = layer_2_error*dtanh(layer_2)
-        overallError += np.abs(layer_2_error[0])
         '''
         # store hidden layer so we can use it in the next timestep
         context_layer.append(copy.deepcopy(layer_1))
@@ -193,17 +205,15 @@ for i in range(epoch):
         synapse_h_c = np.reshape(synapse_h,(-1,1))
         synapse_1_c = np.reshape(synapse_1,(-1,1))
         w_concat = np.concatenate((synapse_0_c,synapse_h_c,synapse_1_c), axis=0)
- 
-        '''                 
+           
         # update weight
         innovation = ((Y-layer_2).sum()/len(layer_2_error))
-
+        '''      
         #assign bobot versi siraj
         synapse_0 += synapse_0_update * alpha
         synapse_1 += synapse_1_update * alpha
         synapse_h += synapse_h_update * alpha    
         '''
-        
         # assign bobot versi ekf
         synapse_0 = w_concat[0:(input_dim*hidden_dim),0]
         synapse_h = w_concat[(input_dim*hidden_dim):(input_dim*hidden_dim)+(hidden_dim*hidden_dim),0]
@@ -223,8 +233,10 @@ for i in range(epoch):
         layer_h_deltas = layer_1_delta
         context_layer = layer_1
         
-        for position in range(batch_dim):
-            print('pos',position)
+# =============================================================================
+#         for position in range(batch_dim):
+#             print('pos',position)
+# =============================================================================
             
     layer_2_value = np.reshape(layer_2_value,(-1,1))
     mse_epoch = mse(trainY,layer_2_value)
@@ -232,6 +244,9 @@ for i in range(epoch):
     
 run_time = time.time() - start_time
 
+sum_0 = np.abs(np.sum(synapse_0_c[0:len(synapse_0_c)]))
+sum_h = np.abs(np.sum(synapse_h_c[0:len(synapse_h_c)]))
+sum_1 = np.abs(np.sum(synapse_1_c[0:len(synapse_1_c)]))
 #%% seberapa besar lossnya???
 
 plt.plot(mse_all,label='loss')
