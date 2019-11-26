@@ -1,18 +1,11 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import time
-from numpy.linalg import inv
-
-#persiapan data
-data = pd.read_csv('data.csv',
-                    usecols=[1],
-                    engine='python',
-                    delimiter=',',
-                    decimal=".",
-                    thousands=',',
-                    header=None,
-                    names=['date','value'] )
+import time, copy
+from filterpy import kalman
+import ArgUKF
+#%% persiapan data
+data = pd.read_csv('data.csv',usecols=[1],engine='python',delimiter=',',decimal=".",thousands=',',header=None,names=['date','value'] )
 data['value'] = data['value'].values
 data['value'] = data['value'].astype('float32')
 
@@ -26,6 +19,13 @@ def pisahData(data,a,b):
         train = data[0:train_size-1]
         test = data[train_size-1:len(data)]
      return np.array(train),np.array(test)
+
+#fungsi aktivasi dan turunannya
+def tanh(x):
+    return (1-np.exp(-2*x))/(1+np.exp(-2*x))
+
+def dtanh(x):
+    return (1-tanh(x)**2)
 
 def normalize(data, scale):
     normalized = []
@@ -43,14 +43,20 @@ def denormalize(normalized, data, scale):
         denormalized.append(a)
     return np.array(denormalized)
 
-
+# normalisasi dengan data satu kolom kebawah
 data_raw = normalize(data['value'],(-1,1))
 
+plt.plot(data_raw[0:1000], label='data mentah')
+plt.title('data_raw')
+plt.legend()
+plt.show()
+
+# pembagian data latih dan test
 train_data, test_data = pisahData(data_raw, 0.7, 0.3)
-train_data = train_data.reshape(-1,1) #reshape data dengan range -1,1 -> satu kolom kebawah
+train_data = train_data.reshape(-1,1) #satu kolom kebawah
 test_data = test_data.reshape(-1,1)
 
-#createwindowSize =3 untuk input
+# createwindowSize =3 untuk input
 def createDataset(data, windowSize):
     dataX, dataY = [],[]
     for i in range(len(data)-windowSize):
@@ -64,40 +70,80 @@ windowSize = 3
 trainX, trainY = createDataset(train_data,windowSize)
 testX, testY = createDataset(test_data, windowSize)
 
-#initialize neuron size
-batch_dim = trainX.shape[0] #mengambil banyak baris (n) dari trainX(n,m)
+#%% PELATIHAN ====  gunain trainX & trainY ====
+# INISIALISASI banyaknya neuron setiap layer 
+alpha = 0.1
+batch_dim = trainX.shape[0] # ambil jumlah baris (n) dari trainX(n,m)
 input_dim = windowSize
 hidden_dim = 6
 output_dim = 1
 
-np.random.seed(4) #random tetap walaupun kamu mengiterasi beruulang kali
-
-#fungsi aktivasi dan turunannya
-def tanh(x):
-    return (1-np.exp(-2*x))/(1+np.exp(-2*x))
-
-def dtanh(x):
-    return (1-tanh(x)**2)
-
-#inisialisasi random BOBOOOTT awal JST dengan random.random ->> interval [0,1]
-synapse_0 = 2*np.random.random((input_dim,hidden_dim)) - 1 #inisialisasi
-synapse_h = 2*np.random.random((hidden_dim,hidden_dim)) - 1 #bobotjaringan dg
-synapse_1 = 2*np.random.random((hidden_dim,output_dim)) - 1 #interval[-1,1]
+# BOBOT === inisialisasi bobot awal (baris,kolom)
+synapse_0 = 2*np.random.random((input_dim,hidden_dim)) - 1 # inisialisasi random bobot awal
+synapse_h = 2*np.random.random((hidden_dim,hidden_dim)) - 1 # dengan interval [-1,1]
+synapse_1 = 2*np.random.random((hidden_dim,output_dim)) - 1 # random.random ->> interval [0,1]
 
 synapse_0_update = np.zeros_like(synapse_0) #meng-0 kan semua isi array sesuai shape dr variabel (synapse_0)
 synapse_1_update = np.zeros_like(synapse_1)
 synapse_h_update = np.zeros_like(synapse_h)
 
-#log mse tiap epoch
+# log mse tiap epoch
 mse_all = []
 
 #inisialisasi sebelum train
 jumlah_w = (input_dim*hidden_dim)+(hidden_dim*hidden_dim)+(hidden_dim*output_dim)
-Q = 1*np.identity(jumlah_w) #kovarian Noise process
-R = 1*np.identity(output_dim) #Kovarian Noise measurement(observasi)
-P = 1*np.identity(jumlah_w) #kovarian estimasi vektor state
-#%%
 
+#%% Parameter UKF
+
+n_fx_input    = 1 # process fx input
+n_fx_output   = 1 # process output
+n_hx_input    = 1 # measurement hx input
+n_hx_output   = 1 # measurement hx output
+n_nn_hidden   = [4] # number of neurons for each layer
+nn_activation = tanh
+
+n_hidden_weights = [n_fx_input * n_nn_hidden[0]] + [n_nn_hidden[k-1]*n_nn_hidden[k] for k in range(1,len(n_nn_hidden))]
+n_output_weights   = n_nn_hidden[len(n_nn_hidden)-1] * n_fx_output
+n_total_weights    = sum(n_hidden_weights) + n_output_weights
+n_total_intercepts = sum(n_nn_hidden) + n_fx_output
+n_total_nn_parameters = n_total_weights + n_total_intercepts
+n_joint_ukf_process_states    = n_fx_input + n_total_nn_parameters
+n_ukf_process_noise= n_fx_input
+n_joint_ukf_process_noise  = n_ukf_process_noise + n_total_nn_parameters
+Xdim = n_joint_ukf_process_states
+Vdim = n_joint_ukf_process_noise
+Ndim = 1 # measurement 
+Ldim = Xdim+Vdim+Ndim
+
+# Process model dengan RNN
+def fx(x, dt):
+    xout = np.empty_like(x)
+    xout[0] = x[1] * dt + x[0]
+    xout[1] = x[1]
+    return xout
+
+# measurement model dengan RNN
+def hx(x):
+    return x[:1] # return position [x] 
+
+def update_nn_weights(nn_x):
+    w = copy.deepcopy(nn_x[n_fx_input:])
+
+dim_x = trainX.ndim
+dim_z = 1
+
+points = kalman.MerweScaledSigmaPoints(Ldim, alpha=.3, beta=2., kappa=0) #makin besar alpha, makin menyebar data[:train_data], range(train_data)
+kf = ArgUKF.UnscentedKalmanFilter(dim_x=Xdim, dim_z=n_hx_output, dt=.1, hx=hx, fx=fx, points=points) # sigma = points
+
+kf.x = np.array(np.zeros(kf.x.shape)) # initial shape
+kf.P = .2 # inisial uncertainty
+kf.R = .5
+z_std = 0.1
+
+# kf.R = np.diag([z_std**2,z_std**2])
+# sigmas = np.zeros((2*n+1,n))
+
+#%% EVALUASI ====
 def mse(x,y):
     mse = []
     for i in range(len(y)):
@@ -128,7 +174,7 @@ def mape(x,y):
     for i in range(len(y)):
         a = abs((x[i]-y[i])/x[i])
         mape.append(a)
-    mape = float((sum(mse))/len(y))*100
+    mape = float((sum(mape))/len(y))*100
     return mape
 
 def dstat(x,y):
@@ -140,108 +186,105 @@ def dstat(x,y):
     Dstat = (1/float(n-2))*float(dstat)*100
     return float(Dstat)
 
-#%%
+#%% MULAI EPOCH ============ PELATIHAN ===================
 
 epoch = 5
 start_time = time.time()
 for i in range(epoch):
     index = 0
+    # overallError = 0
     layer_2_value = []
-    context_layer = np.full((batch_dim,hidden_dim),0)
-    layer_h_deltas = np.zeros(hidden_dim)
-    while(index+batch_dim<=trainX.shape[0]):
+    # layer_2_deltas = list()
+    # layer_1_values = list() # context layer recurrent sebelumnya (setiap timestep)
+    context_layer = np.full((batch_dim,hidden_dim),0) 
+    layer_h_deltas = np.zeros(hidden_dim) # context layer (sebelumnya)
+    # while(index+batch_dim<=trainX.shape[0]):
+    for position in range(index+batch_dim<=trainX.shape[0]):        
+        # input dan output
         X = trainX[index:index+batch_dim,:]
         Y = trainY[index:index+batch_dim]
         index = index+batch_dim
 
-        # forward pass -> input to hidden
-        layer_1 = tanh(np.dot(X,synapse_0)+np.dot(context_layer,synapse_h))
+        # forwardpass = propagated = bawa ke ~>
+        # input ~> prev hidden
+        layer_1 = tanh(np.dot(X,synapse_0) + np.dot(context_layer,synapse_h))
     
-        #hidden to output
+        # hidden ~> output
         layer_2 = tanh(np.dot(layer_1,synapse_1))
         layer_2_value.append(layer_2)
     
-        #hitung error output
+        # hitung error output
+        # layer_2_error = Y - layer_2
         layer_2_error = layer_2 - Y[:,None] #problemnya, y diganti dr Y matrix
-        # None gunanya nge'wrap' [[value]], disini, jadi satu barus kebawah beraturan
-         
-        #layer 2 deltas (masuk ke context layer dari hidden layer)
+        # layer_2_deltas.append((layer_2_error)*dtanh(layer_2))
+        
+        # error di output layer -> layer 2 deltas (masuk ke context layer dari hidden layer)
         layer_2_delta = layer_2_error*dtanh(layer_2)
-    
-        #layer 1 delta (masuk ke hidden layer dari context layer)
+        
+        # store hidden layer so we can use it in the next timestep
+        # context_layer.append(copy.deepcopy(layer_1))
+        
+        # error di hidden layer -> layer 1 delta (masuk ke hidden layer dari context layer)
         layer_1_delta = (np.dot(layer_h_deltas,synapse_h.T) + np.dot(layer_2_delta,synapse_1.T)) * dtanh(layer_1)
     
-        #calculate weight update
+        # calculate weight update
         synapse_1_update = np.dot(np.atleast_2d(layer_1).T,(layer_2_delta))
         synapse_h_update = np.dot(np.atleast_2d(context_layer).T,(layer_1_delta))
-        synapse_0_update = np.dot(X.T,(layer_1_delta)) # X bermasalah
+        synapse_0_update = np.dot(X.T,(layer_1_delta))
         
-        #concatenate weight
-        synapse_0_c = np.reshape(synapse_0,(-1,1)) #reshape satu kolom kebawah
+        # concatenate weight
+        synapse_0_c = np.reshape(synapse_0,(-1,1))
         synapse_h_c = np.reshape(synapse_h,(-1,1))
         synapse_1_c = np.reshape(synapse_1,(-1,1))
         w_concat = np.concatenate((synapse_0_c,synapse_h_c,synapse_1_c), axis=0)
-        
-        #jacobian
-        dsynapse_0 = np.reshape(synapse_0_update,(1,-1)) # satu baris kesamping
-        dsynapse_h = np.reshape(synapse_h_update,(1,-1))
-        dsynapse_1 = np.reshape(synapse_1_update,(1,-1))
-        H = np.concatenate((dsynapse_0,dsynapse_h,dsynapse_1), axis=1)
-        H_transpose = H.T
-        
-        #Kalman Gain
-        K1 = np.dot(H,P)
-        K2 = np.dot(K1,H_transpose)+R
-        K3 = inv(K2)
-        K4 = np.dot(P,H_transpose)
-        K = np.dot(K4,K3)
-        
-        #update weight
+           
+        # update weight
         innovation = ((Y-layer_2).sum()/len(layer_2_error))
-        w_concat_new = w_concat + np.dot(K,innovation)
-        
-        #update P
-        P1 = np.dot(K,H)
-        P2 = np.dot(P1,P)+Q
-        P = P-P2
-        
-        #assign bobot
+        w_concat_new = w_concat + kf.K.T
+        '''
+        #assign bobot versi siraj
+        synapse_0 += synapse_0_update * alpha
+        synapse_1 += synapse_1_update * alpha
+        synapse_h += synapse_h_update * alpha    
+        '''        
+        # assign bobot versi ekf
         synapse_0 = w_concat_new[0:(input_dim*hidden_dim),0]
         synapse_h = w_concat_new[(input_dim*hidden_dim):(input_dim*hidden_dim)+(hidden_dim*hidden_dim),0]
         synapse_1 = w_concat_new[(input_dim*hidden_dim)+(hidden_dim*hidden_dim):w_concat_new.shape[0],0]
         
-        #reshape balik bobot
+        # reshape balik bobot
         synapse_0 = np.reshape(synapse_0,(input_dim,hidden_dim))
         synapse_h = np.reshape(synapse_h,(hidden_dim,hidden_dim))
         synapse_1 = np.reshape(synapse_1,(hidden_dim,output_dim))
-        
-        #reset update
+    
+        # reset update
         synapse_0_update *= 0
         synapse_1_update *= 0
         synapse_h_update *= 0
-        
-        #update context layer
+    
+        # update context layer
         layer_h_deltas = layer_1_delta
         context_layer = layer_1
-    
+               
     layer_2_value = np.reshape(layer_2_value,(-1,1))
     mse_epoch = mse(trainY,layer_2_value)
     mse_all.append(mse_epoch)
+    
 run_time = time.time() - start_time
+#%% seberapa besar lossnya???
 
-#%%
-plt.plot(mse_all,label='loss', marker = 'x')
+plt.plot(mse_all,label='loss')
 plt.title('Loss (MSE)')
 plt.xlabel('Epoch')
 plt.ylabel('Loss (MSE)')
 plt.legend()
 plt.show()
 
-#%%  mari kita coba prediksiiiiiii
+#%% mari coba ============ PREDIKSI ===================
 
 batch_predict = testX.shape[0] # mengambil banyaknya baris (n) dari testX(n,m)
 context_layer_p = np.full((batch_predict,hidden_dim),0) # return full array yg isinya (0) sebesar dimensi [batch_predict x hidden_dim]
-y_pred = [] # hasil output y prediksi
+y_pred = [] # hasil akhir Y prediksi
 index = 0
 while(index+batch_predict<=testX.shape[0]):
     X = testX[index:index+batch_predict,:]
@@ -252,26 +295,41 @@ while(index+batch_predict<=testX.shape[0]):
     index = index+batch_predict
     
 y_pred = denormalize(np.reshape(y_pred,(-1,1)), data['value'], (-1,1))
+testYseb = testY.reshape(-1,1)
 testY = denormalize(testY, data['value'], (-1,1))
 mse_pred = mse(testY,y_pred)
 rmse_pred = rmse(testY,y_pred)
 mae_pred = mae(testY,y_pred)
+mape_pred = mape(testY,y_pred)
 dstat_pred = dstat(testY,y_pred)
 scoring = [mse_pred,rmse_pred,mae_pred,dstat_pred,run_time]
 
-plt.plot(testY, label='true') #testY[0:50] buat plotting coba liat di catatan
-plt.plot(y_pred, label='prediction')
+plt.plot(testYseb[0:50], label='true') #testY[0:50] buat plotting coba liat di catatan
+plt.plot(layer_2p[0:50], label='prediction')
+plt.xlabel('Data ke-')
+plt.ylabel('Harga')
+plt.title('RNN-UKF sebelun denormalisasi')
+plt.legend()
+plt.show()
+
+plt.plot(testY[0:50], label='true') #testY[0:50] buat plotting coba liat di catatan
+plt.plot(y_pred[0:50], label='prediction')
+plt.xlabel('Data ke-')
+plt.ylabel('Harga')
 plt.title('RNN-UKF')
 plt.legend()
 plt.show()
 
-print(scoring)
+#scoring = [mse_pred,rmse_pred,mae_pred,dstat_pred,run_time]
+print("runtime : ", run_time)
+print("mse : " , mse_pred)
+print("rmse : ", rmse_pred) 
+print("mape : ", mape_pred) 
+print("mae: " , mae_pred)
+print("dstat : " , dstat_pred)
 
 #%%
 np.savetxt('bobot_input.csv', synapse_0, delimiter=',')
 np.savetxt('bobot_hidden.csv', synapse_h, delimiter=',')
 np.savetxt('bobot_output.csv', synapse_1, delimiter=',')
 np.savetxt('loss_ukf.csv', mse_all, delimiter=';')
-
-#%%
-

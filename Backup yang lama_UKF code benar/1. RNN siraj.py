@@ -1,4 +1,5 @@
 import copy, numpy as np
+import matplotlib.pyplot as plt
 
 np.random.seed(0)
 
@@ -120,7 +121,7 @@ for j in range(10000):
     # print out progress
     if(j % 1000 == 0):
         print (overallError,d,c)
-        
+
         '''
         print (d)
         print (c)
@@ -135,3 +136,4 @@ for j in range(10000):
             print (l)
 
         '''
+        
