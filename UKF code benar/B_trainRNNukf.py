@@ -223,13 +223,19 @@ sigmas = np.zeros((2*n+1,n))
     K = np.dot(Pxz,inv(Pz))
     
     #update P
-    z = i + np.random()*.5
-    z_ = z-zp #(SS!!!)(z_ -> tambahan) z = i + randn()*.5
-    x_ = xp + np.dot(ukf.K,z_) # (SS!!!) (x_ = x cari di update)
-    P2 = np.dot(np.dot(K,Pz),(ukf.K.T))
-    P = Pp - P2  
-'''
 
+'''
+# =============================================================================
+#         for i in range(len(synapse_1)):
+#             x_ = synapse_1[0]
+#             Pz = np.dot(synapse_1[i],points[0])          
+# =============================================================================
+    
+        # ukf points (mean dan kovarian) setiap synapse layer
+        # hitung bobot tiap points tersebut
+        # Unscented transform untuk trasformasi mean dan kovarian ke tuple (measurement space)
+        # new mean dan sigmas
+        
 #%% eksekusi epoch
 epoch = 5
 start_time = time.time()

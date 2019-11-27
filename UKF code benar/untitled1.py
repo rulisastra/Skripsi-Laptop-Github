@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import time
+import matplotlib.pyplot as plt
 from numpy.linalg import inv
 # from scipy.linalg import cholesky
 from filterpy.kalman import UnscentedKalmanFilter as UKF
@@ -81,6 +81,7 @@ batch_dim = trainX.shape[0] # ambil jumlah baris (n) dari trainX(n,m)
 input_dim = windowSize
 hidden_dim = 6
 output_dim = 1
+jumlah_w = (input_dim*hidden_dim)+(hidden_dim*hidden_dim)+(hidden_dim*output_dim)
 
 # BOBOT === inisialisasi bobot awal (baris,kolom)
 synapse_0 = 2*np.random.random((input_dim,hidden_dim)) - 1 # inisialisasi random bobot awal
@@ -94,8 +95,144 @@ synapse_h_update = np.zeros_like(synapse_h)
 # log mse tiap epoch
 mse_all = []
 
-#inisialisasi sebelum train
-jumlah_w = (input_dim*hidden_dim)+(hidden_dim*hidden_dim)+(hidden_dim*output_dim)
+# inisialisasi sebelum train
+Q = 1*np.identity(jumlah_w) #kovarian Noise process
+R = 1*np.identity(output_dim) #Kovarian Noise measurement(observasi)
+P = 1*np.identity(jumlah_w) #kovarian estimasi vektor state
+
+#%% Unscented Kalman Filter without filterpy
+
+# inisialisasi
+n_fx_output = output_dim
+n_nn_hidden = hidden_dim
+n_hidden_weights = (input_dim*hidden_dim)+(hidden_dim*hidden_dim)
+n_total_weights = jumlah_w
+n_output_weights = output_dim
+n_total_intercepts = n_nn_hidden + n_fx_output
+n_fx_input = input_dim
+n_total_weights = n_hidden_weights + n_output_weights
+n_total_nn_parameters = n_total_weights + n_total_intercepts
+n_joint_ukf_process_states = n_fx_input + n_total_nn_parameters
+Xdim = n_joint_ukf_process_states
+dimx = Xdim
+print('Xdim',Xdim)
+
+# SIGMA POINTS dan Weightnya (dari mean dan kovarian) pada w_concat
+points = Merwe(n=1, alpha=.3, beta=2., kappa=0) #makin besar alpha, makin menyebar data[:train_data], range(train_data)
+# sigmas = points.sigma_points(x, p) 
+# plt.plot(sigmas, marker='x', ls=None)
+
+kf = UKF(dim_x=1, dim_z=1, dt=.1, hx=None, fx=None, points=points) # sigma = points
+    
+
+# def titiksigma(mean):
+
+# def bobot_titik_sigma():
+    
+# def fx():
+
+# def hx():
+
+# def 
+    
+# initialisasi mean dan kovarian awal
+'''
+        x =[]
+        xx =[]
+        batch_x = w_concat.shape[0]
+        index_i = 0
+        while(index_i+batch_x<=w_concat.shape[0]):
+            xx += np.array(len(w_concat[0,:]))
+            x.append(xx)
+            index_i = index_i+batch_x
+        
+# =============================================================================
+#         for i in w_concat:
+#             xx = np.array(len(w_concat[0,:]))
+#         x.append(x)
+#         # x = np.array(len(w_concat[0,:]))
+#         # p_ = np.array([[1],[1]])
+# =============================================================================
+        p = np.diag([1**2, 1**2]) # agar jadi integer, bukan float
+        
+        # SIGMA POINTS dan Weightnya (dari mean dan kovarian) pada w_concat
+        points = Merwe(n=1, alpha=.3, beta=2., kappa=0) #makin besar alpha, makin menyebar data[:train_data], range(train_data)
+        sigmas = points.sigma_points(x, p) 
+        plt.plot(sigmas, marker='x', ls=None)
+        
+        kf = UKF(dim_x=1, dim_z=1, dt=.1, hx=None, fx=None, points=points) # sigma = points
+        
+        print(points)
+        
+        # inisialisasi P disini tentukan sndiri karena konstan
+        sigmas_i= []
+        sigma_0 = []
+        for i in w_concat:
+            sigma_tg_i = i # tiap i jadi mean tengah
+            sigma_tg_around = sigmas(sigma_tg_i,p)
+        
+
+
+        sigmas_point = points.sigma_points()
+        sigmas_per_point_mean.append(points.sigma_points(mean,p))
+        plt.plot(sigmas_per_point_mean[0], marker='x', ls=None)
+        sigmas_per_point_mean = np.array(sigmas_per_point_mean)
+        plt.plot(mean_per_point[0], marker='x', ls=None)
+        
+# =============================================================================
+#         uxs = []
+#         for z in (w_concat):
+#             # kf.predict()
+#             # kf.update(z)
+#             uxs.append(kf.x.copy())
+#         uxs = np.array(uxs)
+# =============================================================================
+    
+        plt.plot(mean,marker='x',ls=None)
+        plt.plot(mean_per_point,marker='o',ls=None)
+        
+# =============================================================================
+#         sigmas = np.zeros((2*points.n+1))
+#         U = cholesky((points.n+points.kappa)*P)
+#     
+#         for k in range(points.n):
+#             sigmas[k+1] = mean[k] + U[k]
+#             sigmas[points.n+k+1] = mean[k] - U[k]
+#         # sigmas = points.sigma_points(mean,P)
+#       
+#         dim_x = 2 # jumlah variabel (dim=1, maka dim_x=2)
+#         dim_z = 2 # jumlah input measurement (posisi x,y maka dim_z=2)
+#         num_sigmas = 2*points.n+1
+# =============================================================================
+        sigmas_f = np.zeros((kf.num_sigmas,kf.dim_x)) # dim_x
+        sigmas_h = np.zeros((kf.num_sigmas,kf.dim_z)) # dim_x
+# =============================================================================
+#         for i in range(len(synapse_1)):
+#             mean = synapse_1
+#             sigma = points(mean)
+#         Pz = np.dot(synapse_1[i],points[0])
+# =============================================================================
+        
+        # ukf points (mean dan kovarian) setiap synapse layer
+        # hitung bobot tiap points tersebut
+        # Unscented transform untuk trasformasi mean dan kovarian ke tuple (measurement space)
+        # new mean dan sigmas
+        # Unscented Transform
+        xp = np.eye(UT(sigmas_f,points.Wc,points.Wm,Q)) # X bar
+        zp = np.eye(UT(sigmas_h,points.Wc,points.Wm,R)) # Myu z
+        
+# =============================================================================
+#         # Cross Covariance prediksi ~> UT
+#         Pz = np.zeros((dim_x,dim_z))
+#         for i in range(num_sigmas):
+#             Pz += points.Wc[i] * np.outer((sigmas_h[i]-zp),(sigmas_h[i]-zp)) + R
+#         
+#         # Cross covariance (P) dari state ke measurement
+#         Pxz = np.zeros((dim_x,dim_z))
+#         for i in range(num_sigmas):
+#             Pxz += points.Wc[i] * np.outer(sigmas_f[i]-xp,sigmas_h[i]-zp) # outer sm dengan transpose?
+# =============================================================================
+'''
 
 #%% EVALUASI ====
 def mse(x,y):
@@ -151,11 +288,7 @@ for i in range(epoch):
     context_layer = np.full((batch_dim,hidden_dim),0) 
     layer_h_deltas = np.zeros(hidden_dim) # context layer (sebelumnya)
     # while(index+batch_dim<=trainX.shape[0]):
-    points = Merwe(n=1, alpha=.3, beta=2., kappa=0) #makin besar alpha, makin menyebar data[:train_data], range(train_data)
-    print('points',points)
-    # points.sigma_points(x=len(synapse_1[i]), P=None)
-    kf = UKF(dim_x=1, dim_z=1, dt=.1, hx=None, fx=None, points=points) # sigma = points
-    for position in range(index+batch_dim<=trainX.shape[0]):        
+    while i in range(index+batch_dim<=trainX.shape[0]):        
         # input dan output
         X = trainX[index:index+batch_dim,:]
         Y = trainY[index:index+batch_dim]
@@ -188,31 +321,24 @@ for i in range(epoch):
         synapse_h_c = np.reshape(synapse_h,(-1,1))
         synapse_1_c = np.reshape(synapse_1,(-1,1))
         w_concat = np.concatenate((synapse_0_c,synapse_h_c,synapse_1_c), axis=0)
-     
-        # sigma points dari mean dan kovarian pada synapse_1 
-        # mean.append(np.reshape(synapse_1,(-1,1)))
-
-        for i in range(len(synapse_1)):
-            x_ = synapse_1[0]
-            S = np.dot(synapse_1[i],points[0])          
-        # synapse_1_x_wm = kf.Wm(layer_2_value)
-        # ukf points (mean dan kovarian) setiap synapse layer
-        # synapse_1_sig = points.sigma_points(synapse_1_c)
-
-        # hitung bobot tiap points tersebut
-        # Unscented transform untuk trasformasi mean dan kovarian ke tuple (measurement space)
+                
+        # === UKF ===
+        zp, Pz = UT(kf.sigmas_f, points.Wm, points.Wc) # UT buat new mean dan kovarian
+        Pxz = kf.cross_variance(w_concat[i], zp ,kf.sigmas_f, kf.sigmas_h)
+        print('Pxz',Pxz)
         
+        # Kalman gain
+        # K = kf.K(w_concat)
+        K = np.dot(Pxz,inv(Pz))
         
-        # new mean dan sigmas
-              
-        # update pengukuran
-        # kalman gain
-        T = synapse_1
-        K = np.dot(T,inv(S))
-            
+        # update P
+        P1 = np.dot(K,Pz)
+        P2 = np.dot(P1,K.T)
+        P = P-P2
+        
         # update weight
         innovation = ((Y-layer_2).sum()/len(layer_2_error)) # hitung error pred dan yang diharapkan
-        w_concat_new = w_concat + K
+        w_concat_new = w_concat + np.dot(K,innovation)
 
         # assign bobot versi ekf
         synapse_0 = w_concat_new[0:(input_dim*hidden_dim),0]
