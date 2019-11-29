@@ -5,11 +5,6 @@ import matplotlib.pyplot as plt
 from numpy.linalg import inv
 from scipy.linalg import cholesky
 
-# =============================================================================
-# from filterpy.kalman import UnscentedKalmanFilter as UKF
-# from filterpy.kalman import MerweScaledSigmaPoints as Merwe
-# =============================================================================
-
 #%% persiapan data
 data = pd.read_csv('data.csv',usecols=[1],engine='python',delimiter=',',decimal=".",thousands=',',header=None,names=['date','value'] )
 data['value'] = data['value'].values
@@ -48,6 +43,15 @@ def denormalize(normalized, data, scale):
         a = ((normalized[i]-min(scale))*(max(data)-min(data)))/(max(scale)-min(scale))+min(data)
         denormalized.append(a)
     return np.array(denormalized)
+
+def norm(x, scale):
+    normalized = []
+    for i in range(len(x)):
+        a = (min(scale))+(x[i]-min(x))*(max(scale)-min(scale))/(max(x)-min(x))
+        normalized.append(a)
+    return np.array(normalized)
+    scale = (-1,1)
+    normalized = normalize(x,scale)
 
 # normalisasi dengan data satu kolom kebawah
 data_raw = normalize(data['value'],(-1,1))
@@ -104,15 +108,6 @@ Q = 1*np.identity(jumlah_w) #kovarian Noise process
 R = 1*np.identity(output_dim) #Kovarian Noise measurement(observasi)
 P = 1*np.identity(jumlah_w) #kovarian estimasi vektor state
 
-#%% Unscented Kalman Filter without filterpy
-
-beta = 2.
-kappa = 0
-lambda_ = 1. # lambda_ = alpha**2 * (n + kappa) - n
-# =============================================================================
-# points = Merwe(n, alpha, beta, kappa) #makin besar alpha, makin menyebar data[:train_data], range(train_data)
-# kf = UKF(dim_x=1, dim_z=1, dt=.1, hx=None, fx=None, points=points) # sigma = points
-# =============================================================================
 #%% EVALUASI ====
 def mse(x,y):
     mse = []
@@ -199,133 +194,100 @@ for i in range(epoch):
         synapse_1_c = np.reshape(synapse_1,(-1,1))
         w_concat = np.concatenate((synapse_0_c,synapse_h_c,synapse_1_c), axis=0)
 
-        ''' ============= UKF di measurement ============= '''
-        
+        ''' 
+        ============= UKF di measurement ============= 
+        '''
+        #%% Unscented Kalman Filter without filterpy
+        beta = 2.
+        kappa = 0
+        lambda_ = 1. # lambda_ = alpha**2 * (n + kappa) - n
         n = w_concat.size # julier versi masalah 'dimension of problem'
         
-        # Sigma points around mean
+        #%% SIGMA POINTS around mean
         mean = np.sum(w_concat) / n # mean secara keseluruhan
-        lambda_ = alpha**2 *(n + kappa) - n  # Merwe
+        U = cholesky((n + lambda_)*P) # sama dg np.sqrt
 # =============================================================================
 #         implements U'*U = (n+kappa)*P. Returns lower triangular matrix.
 #         Take transpose so we can access with U[i]
-# =============================================================================        
-        U = cholesky((n + lambda_)*P) # sama dg np.sqrt
-        
-        # filterpy version dengan shape (121,60) jadi 60 karena dikali dg P!
+#         dikali P biar hold the value
+# =============================================================================
+        # filterpy version dengan shape (121,60) karena dikali dg P!
         sigmas = np.zeros((2*n+1, n))
         # maka....
-        s_ = np.reshape(w_concat,(1,-1))
-        s_n = np.subtract(w_concat, -U)
-        s_n2 = np.subtract(w_concat, U)
-        sigmas_concat = np.concatenate((s_,s_n,s_n2), axis=0) # (121,60)
-
-        '''
-            # filterpy version (sigmas jadi (121,60))
-            for k in range(n):
-                sigmas_n =  np.subtract(w_concat, -U[k])
-                sigmas_2n = np.subtract(w_concat, U[k])
-            
-            # pykalman version (nge ravel() jadi (1,7260))
-            sigmas = np.tile(w_concat.T, (1, 2 * n + 1))
-            sigmas[:, 1:(n + 1)] += P * np.sqrt(U) # mu + each column of sigma2 * sqrt(c)
-            sigmas[:, (n + 1):] -= P * np.sqrt(U) # mu - each column of sigma2 * sqrt(c)
-            
-            # ruli version (m_utama sbg w_concat)
-            m_1n = np.subtract(m_utama, -U)
-            m_1n2 = np.subtract(m_utama, U)
-            m_concat = np.concatenate((m_utama,m_1n,m_1n2), axis=0) # Z besar
-            m_concat_sum = np.reshape(np.sum(m_concat, axis=1),(-1,1))
- 
-            # Wm
-            Wm_sum = np.reshape(np.sum(m_1concat, axis=1),(-1,1))
-            Wc_sum = np.reshape(np.sum(P, axis=1),(-1,1))
-            
-            # menuju....
-            Mz = np.dot(np.reshape(Wm_sum,(1,-1)),m_1concat) # myu z
-            
-            # kovarian
-            Pz1 = np.subtract(m_1concat,Mz)
-            Pz2 = np.dot(Pz1,Pz1.T) # (60,60)
-            Pz = Wc_sum * Pz2 # + R) 
-    
-# =============================================================================
-#                     gila gede banget coy matrixnya 
-#                     HARUSNYA dot tapi matrixnya lbh gede
-# =============================================================================
-    
-            # Kalman gain
-            K1 = np.subtract(w_concat,Mz)
-            K2= np.dot(K1,Pz1.T) # (60,60)     
-            K3 = np.dot(np.reshape(Wm_sum,(1,-1)),inv(Pz)) # dibalik Wm_sum nya :()
-            K = np.reshape(K3,(-1,1))
-     
-            # update weight
-            innovation = ((Y-layer_2).sum()/len(layer_2_error)) # hitung error pred dan yang diharapkan
-            # w_concat_new = w_concat + np.dot(K,innovation)
-            w_concat_new = w_concat + np.dot(K,innovation) # bikin yang assal, asal networknya jalan
-    
-            # kovarian Update
-            K_transpose = K.T
-            # P3 = Pz[1,:]
-            # P2 = np.dot(P3,K_transpose)
-            
-        '''
-            
-        # Pembobotan sigma points
-        # filterpy version
-        Wc = np.full(2*n + 1, 1. / (2*(n + lambda_)))
-        Wm = np.full(2*n + 1, 1. / (2*(n + lambda_)))
+        for k in range(n):
+            s_ = np.reshape(w_concat,(1,-1))
+            s_n = np.subtract(w_concat, -U)
+            s_n2 = np.subtract(w_concat, U)
+        # gabung (121,60) kebawah.. jadinya 121,60
+        sigmas_concat = np.concatenate((s_,s_n,s_n2), axis=0)
+        
+        #%% BOBOT SIGMA dari Merwe
+        lambda_ = alpha**2 *(n + kappa) - n
+        c_ = .5 / (n + lambda_)
+        Wm = np.full(2*n+1, c_)
+        Wc = Wm # size (121,) atau (n,)
         Wc[0] = lambda_ / (n + lambda_) + (1 - alpha**2 + beta)
         Wm[0] = lambda_ / (n + lambda_)
         
-        # menuju....
-        Mz = np.dot(np.reshape(Wm,(1,-1)),sigmas_concat) # myu z
-                
-        # Pz (kovarian di measurement)
-        # SEMUA BERANTAKAN GARA2 Pz
+        # SIGMA Unscented Transform  (biar hold value dg eyeP) ke measurement
+        # Mz = np.reshape(np.dot(Wm,sigmas_concat),(-1,1)) # yang lama computenya
+        Mz = np.dot(np.reshape(Wm,(1,-1)),sigmas_concat) # myu z yang dipake awalnya
+        
+        # KOVARIANCE ke measurement juga
+        # SEMUA BERANTAKAN GARA2 Pz!
         kmax, n = sigmas.shape
-        Pz_ = np.zeros(sigmas.shape)
+        Pz = np.zeros(sigmas_concat.shape)
         for k in range(kmax):
-            C = np.subtract(sigmas_concat[k],Mz)
+            c = np.subtract(sigmas_concat[k],Mz)
             # harusnya +=
-            Pz_ = Wc[k] * np.outer(C, C) # makin besar nilainya dengan +=
-        Pz = Pz_ + R
-
+            Pz = Wc[k] * np.outer(c, c) # makin besar nilainya dengan +=
+        Pz += Q
+        
         # Kalman gain
-        K1 = np.subtract(w_concat,Mz)
-        K2= np.dot(K1,Pz.T) # (60,60)
-        Pxz_ = np.zeros(sigmas.shape)
-        for i in range(kmax):
-            Cc = np.subtract(sigmas,Mz)
-            C = np.subtract(sigmas_concat[k],Mz)
+        Pxz = np.zeros(sigmas.shape)
+        for k in range(kmax):
+            cc = np.subtract(sigmas[0],Mz)
+            c = np.subtract(sigmas_concat[k],Mz)
             # harusnya +=
-            Pxz_ = Wc[k] * np.outer(Cc, C) # makin besar nilainya dengan +=
-        Pxz = Pxz_ + R
-        K3 = np.dot(np.reshape(Wc,(1,-1)),inv(Pz)) # dibalik Wm_sum nya :()
-        K = np.reshape(K3,(-1,1))
-        
-'''
-        # update weight
-        innovation = ((Y-layer_2).sum()/len(layer_2_error)) # hitung error pred dan yang diharapkan
-        # w_concat_new = w_concat + np.dot(K,innovation)
-        w_concat_new = w_concat + np.dot(K,innovation) # bikin yang assal, asal networknya jalan
+            Pxz = Wc[k] * np.outer(cc, c) # makin besar nilainya dengan +=
+# =============================================================================
+#         tapi menghasilkan complex bilangan 
+#         saat di inverse Pz_inv = inv(Pz)
+# =============================================================================
 
-        # kovarian Update
-        K_transpose = K.T
-        # P3 = Pz[1,:]
-        # P2 = np.dot(P3,K_transpose)
-        
-        # assign bobot versi ekf
-        synapse_0 = w_concat_new[0:(input_dim*hidden_dim),0]
-        synapse_h = w_concat_new[(input_dim*hidden_dim):(input_dim*hidden_dim)+(hidden_dim*hidden_dim),0]
-        synapse_1 = w_concat_new[(input_dim*hidden_dim)+(hidden_dim*hidden_dim):w_concat_new.shape[0],0]
-        
-        # reshape balik bobot
-        synapse_0 = np.reshape(synapse_0,(input_dim,hidden_dim))
-        synapse_h = np.reshape(synapse_h,(hidden_dim,hidden_dim))
-        synapse_1 = np.reshape(synapse_1,(hidden_dim,output_dim))
-    
+        K = np.dot(Pxz,inv(Pz)) 
+   
+        # UPDATE weight
+        innovation = ((Y-layer_2).sum()/len(layer_2_error)) # hitung error pred dan yang diharapkan
+        w_concat_new_all = w_concat + np.dot(K,innovation)
+        w_concat_new_slice = np.reshape((w_concat_new_all[0]),(-1,1))
+        w_concat_new = norm(w_concat_new_slice,(-1,1))
+
+        # UPDATE kovarian
+        # P2 = np.dot(Pz,K.T)
+# =============================================================================
+#         leading the 5th minor of array is  not positive definite
+# =============================================================================
+        # P = np.dot(K,P2) 
+        P2 = np.dot(Pz,K.T)
+
+        #%%
+        # assign bobot
+        synapse_0_ukf = np.reshape(w_concat_new[0:(input_dim*hidden_dim),0],(input_dim,hidden_dim))
+        synapse_h_ukf = np.reshape(w_concat_new[(input_dim*hidden_dim):(input_dim*hidden_dim)+(hidden_dim*hidden_dim),0],(hidden_dim,hidden_dim))
+        synapse_1_ukf = np.reshape(w_concat_new[(input_dim*hidden_dim)+(hidden_dim*hidden_dim):w_concat_new.shape[0],0],(hidden_dim,output_dim))
+
+        # assign
+        synapse_0_update = synapse_0_ukf
+        synapse_1_update = synapse_h_ukf
+        synapse_h_update = synapse_1_ukf
+        # norm bobot
+# =============================================================================
+#         synapse_0_norm = norm(synapse_0_ukf,(-1,1))
+#         synapse_h_norm = norm(synapse_h_ukf,(-1,1))
+#         synapse_1_norm = norm(synapse_1_ukf,(-1,1))
+# =============================================================================
+
         # reset update
         synapse_0_update *= 0
         synapse_1_update *= 0
@@ -334,7 +296,7 @@ for i in range(epoch):
         # update context layer
         layer_h_deltas = layer_1_delta
         context_layer = layer_1
-               
+ 
     layer_2_value = np.reshape(layer_2_value,(-1,1))
     mse_epoch = mse(trainY,layer_2_value)
     mse_all.append(mse_epoch)
@@ -388,22 +350,6 @@ plt.title('RNN-UKF')
 plt.legend()
 plt.show()
 
-plt.plot(m0, label='mean bobot = 1', marker ='x', ls=None) #testY[0:50] untuk plotting (catatan)
-plt.plot(m_utama, label='bobot = all titik mean', color='r', marker ='o', ls=None)
-plt.xlabel('bobot ke')
-plt.ylabel('value')
-plt.title('Bobot semua')
-plt.legend()
-plt.show()
-
-plt.plot(m_1concat[:,0], marker='o', ls=':')
-plt.plot(m_1concat[:,[1,2]],'x')
-plt.xlabel('bobot ke')
-plt.ylabel('value')
-plt.title('Bobot per index')
-plt.legend()
-plt.show()
-
 #scoring = [mse_pred,rmse_pred,mae_pred,dstat_pred,run_time]
 print("runtime : ", run_time)
 print("mse : " , mse_pred)
@@ -417,4 +363,31 @@ np.savetxt('bobot_input.csv', synapse_0, delimiter=',')
 np.savetxt('bobot_hidden.csv', synapse_h, delimiter=',')
 np.savetxt('bobot_output.csv', synapse_1, delimiter=',')
 np.savetxt('loss_ukf.csv', mse_all, delimiter=';')
-'''
+
+#%%
+
+
+plt.plot(sigmas_concat[0,0], color='r', marker ='o', ls=None)
+plt.plot(sigmas_concat[1:60],'x')
+plt.plot(sigmas_concat[61:121],'x')
+plt.xlabel('bobot ke')
+plt.ylabel('value')
+plt.title('SIGMAS semua')
+plt.show()
+
+plt.plot(P[0], color='r', marker ='o', ls=None)
+plt.plot(Pz,'x')
+plt.plot(Pxz,'x')
+plt.xlabel('KOVARIAN ke')
+plt.ylabel('value')
+plt.title('KOVARIAN (P) semua')
+plt.show()
+
+plt.plot(K, color='r', marker ='o')
+plt.xlabel('value')
+plt.ylabel('value')
+plt.title('Kalman size: ')
+plt.show()
+print('Kalman dim: ', K.ndim)
+print('Kalman size: ', K.size)
+print('Kalman shape: ', K.shape)
