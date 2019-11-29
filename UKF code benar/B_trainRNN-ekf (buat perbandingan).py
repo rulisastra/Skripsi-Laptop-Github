@@ -65,6 +65,7 @@ trainX, trainY = createDataset(train_data,windowSize)
 testX, testY = createDataset(test_data, windowSize)
 
 #initialize neuron size
+alpha = 0.1
 batch_dim = trainX.shape[0] #mengambil banyak baris (n) dari trainX(n,m)
 input_dim = windowSize
 hidden_dim = 6

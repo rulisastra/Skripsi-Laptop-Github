@@ -1,0 +1,130 @@
+
+
+x =[]
+xx =[]
+batch_x = w_concat.shape[0]
+index_i = 0
+while(index_i+batch_x<=w_concat.shape[0]):
+    xx += np.array(len(w_concat[0,:]))
+    x.append(xx)
+    index_i = index_i+batch_x
+
+# inisialisasi P disini tentukan sndiri karena konstan
+sigmas_i= []
+sigma_0 = []
+for i in w_concat:
+    sigma_tg_i = i # tiap i jadi mean tengah
+    sigma_tg_around = sigmas(sigma_tg_i,p)
+
+sigmas_point = points.sigma_points()
+sigmas_per_point_mean.append(points.sigma_points(mean,p))
+plt.plot(sigmas_per_point_mean[0], marker='x', ls=None)
+sigmas_per_point_mean = np.array(sigmas_per_point_mean)
+plt.plot(mean_per_point[0], marker='x', ls=None)
+
+
+====================================ukf-----------
+'''
+        n_fx_output = output_dim
+        n_nn_hidden = hidden_dim
+        n_hidden_weights = (input_dim*hidden_dim)+(hidden_dim*hidden_dim)
+        n_total_weights = jumlah_w
+        n_output_weights = output_dim
+        n_total_intercepts = n_nn_hidden + n_fx_output
+        n_fx_input = input_dim
+        n_total_weights = n_hidden_weights + n_output_weights
+        n_total_nn_parameters = n_total_weights + n_total_intercepts
+        n_joint_ukf_process_states = n_fx_input + n_total_nn_parameters
+        Xdim = n_joint_ukf_process_states
+        dimx = Xdim
+        print('Xdim',Xdim)
+
+def titiksigma(n, x, P, beta, kappa):
+
+    n = ukuran dimensi state data
+    x = means of length n (bisa scalar 1D)
+    P = kovarian (kalau scalar jadi eye(n)*P)
+    
+    sigmas_f = np.zeros((kf.num_sigmas,kf.dim_x)) # dim_x
+    sigmas_h = np.zeros((kf.num_sigmas,kf.dim_z)) # dim_x
+    
+        # mean diambil dari index ke-1 (Percobaan)
+        m_c0 = np.reshape(np.array(m_utama[0,:]),(-1,1)) # mean dari list of w_concat
+        m_c1n = m_c0 - np.sqrt(m_c0.ndim+lambda_) # n tanpa P(kovarian)
+        m_c1n2 = np.subtract(m_c0,(np.sqrt(m_c0.ndim+lambda_))) # 2n tanpa P(kovarian)
+        m_c_concat = np.concatenate((m_c1n,m_c0,m_c1n2), axis=1) # concatenate
+
+    if np.isscalar(P):
+        x = np.asarray([x])
+    
+    if np.isscalar(P):
+        x = np.asarray([P])
+    else:
+        P = np.atleast_2d(P)
+        
+    lambda_ = alpha**2 * (n + kappa) - n
+    U = np.sqrt((lambda_ + n)*P)
+    sigmas = np.zeros((2*n+1, n))
+    sigmas[0] = x
+    for k in range(n):
+        # pylint: disable=bad-whitespace
+        sigmas[k+1]   = np.subtract(x, -U[k])
+        sigmas[n+k+1] = np.subtract(x, U[k])
+    
+    return sigmas
+
+def num_sigmas(n): # jumlah sigma berdaasarkan paper
+    return 2*n+1
+
+def bobot_titik_sigma(n, beta, kappa):    
+    lambda_ = alpha**2 * (n + kappa) - n
+    c = .5 / (n + lambda_)
+    Wc = np.full(2*n + 1, c)
+    Wm = np.full(2*n + 1, c)
+    Wc[0] = lambda_ / (n + lambda_) + (1 - alpha**2 + beta)
+    Wm[0] = lambda_ / (n + lambda_)
+
+def fx(x,dt=1):
+    # state transisi ~> prediksi next(prior) state
+    F = 1*np.identity(x)
+    return np.dot(F,x)
+
+def hx(x):
+    # measurement
+    return np.array([x[0]])
+
+def cross_variance(x, z, sigmas_f, sigmas_h, Wc):
+    """
+    Compute cross variance of the state `x` and measurement `z`.
+    """
+
+    Pxz = np.zeros((sigmas_f.shape[1], sigmas_h.shape[1]))
+    N = sigmas_f.shape[0]
+    for i in range(N):
+        dx = np.subtract(sigmas_f[i], x)
+        dz = np.subtract(sigmas_h[i], z)
+        Pxz += Wc[i] * np.outer(dx, dz)
+    return Pxz
+'''
+
+-------------------------filterpy-----------
+       '''
+                # UT buat new mean dan kovarian
+                zp, Pz = UT(kf.sigmas_f, points.Wm, points.Wc) 
+                Pxz = cross_variance(w_concat[i], zp ,kf.sigmas_f, kf.sigmas_h, kf.Wc)
+                print('Pxz',Pxz.ndim)
+                
+                # Kalman gain
+                # K = kf.K(w_concat)
+                # K = np.dot(Pxz,inv(Pz))
+                
+                S = np.zeros(2) # dim_z sbg update dimensi 
+                S_2d = np.array(S) [np.newaxis, np.newaxis]  # convert 0-d ~> 2-d 
+                SI = inv(S)
+                K = np.dot(Pxz,SI)
+                
+                # update P
+                P1 = np.dot(K,Pz)
+                P2 = np.dot(P1,K.T)
+                P = P-P2
+        '''

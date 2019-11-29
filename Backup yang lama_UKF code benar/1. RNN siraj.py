@@ -33,6 +33,7 @@ output_dim = 1
 
 # initialize neural network weights
 synapse_0 = 2*np.random.random((input_dim,hidden_dim)) - 1
+print(synapse_0)
 synapse_1 = 2*np.random.random((hidden_dim,output_dim)) - 1
 synapse_h = 2*np.random.random((hidden_dim,hidden_dim)) - 1
 
