@@ -5,7 +5,7 @@ import time
 from numpy.linalg import inv
 
 #persiapan data
-data = pd.read_csv('data.csv',
+data = pd.read_csv('IDRUSD.csv',
                     usecols=[1],
                     engine='python',
                     delimiter=',',
@@ -129,7 +129,7 @@ def mape(x,y):
     for i in range(len(y)):
         a = abs((x[i]-y[i])/x[i])
         mape.append(a)
-    mape = float((sum(mse))/len(y))*100
+    mape = float((sum(mape))/len(y))*100
     return mape
 
 def dstat(x,y):
@@ -143,7 +143,7 @@ def dstat(x,y):
 
 #%%
 
-epoch = 5
+epoch = 10
 start_time = time.time()
 for i in range(epoch):
     index = 0
@@ -253,12 +253,14 @@ while(index+batch_predict<=testX.shape[0]):
     index = index+batch_predict
     
 y_pred = denormalize(np.reshape(y_pred,(-1,1)), data['value'], (-1,1))
+testYseb = testY.reshape(-1,1)
 testY = denormalize(testY, data['value'], (-1,1))
 mse_pred = mse(testY,y_pred)
 rmse_pred = rmse(testY,y_pred)
 mae_pred = mae(testY,y_pred)
+mape_pred = mape(testY,y_pred)
 dstat_pred = dstat(testY,y_pred)
-scoring = [mse_pred,rmse_pred,mae_pred,dstat_pred,run_time]
+scoring = [mse_pred,rmse_pred,mae_pred,mape_pred,dstat_pred,run_time]
 
 plt.plot(testY, label='true') #testY[0:50] buat plotting coba liat di catatan
 plt.plot(y_pred, label='prediction')
@@ -267,6 +269,12 @@ plt.legend()
 plt.show()
 
 print(scoring)
+print("mse : " , mse_pred)
+print("rmse : ", rmse_pred) 
+print("mape : ", mape_pred) 
+print("mae: " , mae_pred)
+print("dstat : " , dstat_pred)
+print("runtime : ", run_time)
 
 #%%
 np.savetxt('bobot_input.csv', synapse_0, delimiter=',')

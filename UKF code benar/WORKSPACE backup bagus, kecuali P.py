@@ -6,9 +6,28 @@ from numpy.linalg import inv
 from scipy.linalg import cholesky
 
 #%% persiapan data
-data = pd.read_csv('data.csv',usecols=[1],engine='python',delimiter=',',decimal=".",thousands=',',header=None,names=['date','value'] )
+
+# IDRUSD.csv = 64%
+# data baru  mulai 27sep2017.csv = 0.0
+# data baru all = 21%
+# data = 56%
+# Ether mulai 1jul2017 = 52%
+# Ether = 55%
+# Litecoin mulai 1jan2017.csv = 55%
+# NEO jul2017 = 62%
+# NEO all = 63
+
+data = pd.read_csv('data baru all.csv',
+                    usecols=[1],
+                    engine='python',
+                    delimiter=',',
+                    decimal=".",
+                    thousands=',',
+                    header=None,
+                    names=['date','value'] )
 data['value'] = data['value'].values
 data['value'] = data['value'].astype('float32')
+
 
 def pisahData(data,a,b):
      if((a+b)!=1):
@@ -56,15 +75,16 @@ def norm(x, scale):
 # normalisasi dengan data satu kolom kebawah
 data_raw = normalize(data['value'],(-1,1))
 
-plt.plot(data_raw[0:1000], label='data mentah')
-plt.title('data_raw')
-plt.legend()
-plt.show()
-
 # pembagian data latih dan test
 train_data, test_data = pisahData(data_raw, 0.7, 0.3)
 train_data = train_data.reshape(-1,1) #satu kolom kebawah
 test_data = test_data.reshape(-1,1)
+
+plt.plot(data_raw, c='b', label='test', ls=None)
+plt.plot(train_data[0:1366], c='r', label='training', ls=None)
+plt.title('DATA ternormalisasi 7:3')
+plt.legend()
+plt.show()
 
 # createwindowSize =3 untuk input
 def createDataset(data, windowSize):
@@ -76,19 +96,19 @@ def createDataset(data, windowSize):
         dataX.append(a)
         dataY.append(data[i+windowSize,0])
     return np.array(dataX), np.array(dataY)
-windowSize = 3
+windowSize = 3 # 5
 trainX, trainY = createDataset(train_data,windowSize)
 testX, testY = createDataset(test_data, windowSize)
 
 #%% PELATIHAN ====  gunain trainX & trainY ====
 # INISIALISASI banyaknya neuron setiap layer 
-alpha = 0.1
+alpha = .0003
 batch_dim = trainX.shape[0] # ambil jumlah baris (n) dari trainX(n,m)
 input_dim = windowSize
-hidden_dim = 6
+hidden_dim = 6 # 7,9,
 output_dim = 1
 
-np.random.seed(4)
+np.random.seed(4) # 1 =72%
 
 # BOBOT === inisialisasi bobot awal (baris,kolom)
 synapse_0 = 2*np.random.random((input_dim,hidden_dim)) - 1 # inisialisasi random bobot awal
@@ -101,6 +121,7 @@ synapse_h_update = np.zeros_like(synapse_h)
 
 # log mse tiap epoch
 mse_all = []
+rmse_all = []
 
 # inisialisasi sebelum train
 jumlah_w = (input_dim*hidden_dim)+(hidden_dim*hidden_dim)+(hidden_dim*output_dim)
@@ -152,14 +173,13 @@ def dstat(x,y):
 
 #%% MULAI EPOCH ============ TRAINING ===================
 
-epoch = 5
+epoch = 10 # 100
 start_time = time.time()
 for i in range(epoch):
     index = 0
     layer_2_value = []
     context_layer = np.full((batch_dim,hidden_dim),0) 
     layer_h_deltas = np.zeros(hidden_dim) # context layer (sebelumnya)
-
     while(index+batch_dim<=trainX.shape[0]):        
         # input dan output
         X = trainX[index:index+batch_dim,:]
@@ -193,7 +213,7 @@ for i in range(epoch):
         synapse_h_c = np.reshape(synapse_h,(-1,1))
         synapse_1_c = np.reshape(synapse_1,(-1,1))
         w_concat = np.concatenate((synapse_0_c,synapse_h_c,synapse_1_c), axis=0)
-
+        
         ''' 
         ============= UKF di measurement ============= 
         '''
@@ -267,10 +287,11 @@ for i in range(epoch):
         # P2 = np.dot(Pz,K.T)
 # =============================================================================
 #         leading the 5th minor of array is  not positive definite
+#         KURANG UPDATE P !
 # =============================================================================
-        # P = np.dot(K,P2) 
-        P2 = np.dot(Pz,K.T)
-
+        P2 = np.dot(Pz,K.T) # harusnya P2
+        # P = np.sqrt(np.dot(K,P2))
+        
         #%%
         # assign bobot
         synapse_0_ukf = np.reshape(w_concat_new[0:(input_dim*hidden_dim),0],(input_dim,hidden_dim))
@@ -281,13 +302,13 @@ for i in range(epoch):
         synapse_0_update = synapse_0_ukf
         synapse_1_update = synapse_h_ukf
         synapse_h_update = synapse_1_ukf
+        
         # norm bobot
 # =============================================================================
 #         synapse_0_norm = norm(synapse_0_ukf,(-1,1))
 #         synapse_h_norm = norm(synapse_h_ukf,(-1,1))
 #         synapse_1_norm = norm(synapse_1_ukf,(-1,1))
 # =============================================================================
-
         # reset update
         synapse_0_update *= 0
         synapse_1_update *= 0
@@ -296,17 +317,28 @@ for i in range(epoch):
         # update context layer
         layer_h_deltas = layer_1_delta
         context_layer = layer_1
- 
+        
+    # layer_2_value = np.rot90(np.reshape(layer_2_value,(-1,1)),2)
     layer_2_value = np.reshape(layer_2_value,(-1,1))
     mse_epoch = mse(trainY,layer_2_value)
     mse_all.append(mse_epoch)
+    
+    rmse_epoch = rmse(trainY,layer_2_value)
+    rmse_all.append(rmse_epoch)
+    
 run_time = time.time() - start_time
 #%% seberapa besar lossnya???
 
-plt.plot(mse_all,label='loss')
+plt.plot(mse_all,label='loss', marker='x')
 plt.title('Loss (MSE)')
 plt.xlabel('Epoch')
 plt.ylabel('Loss (MSE)')
+plt.legend()
+plt.show()
+
+plt.plot(trainY, marker='o', label='true') #testY[0:50] buat plotting coba liat di catatan
+plt.plot(layer_2_value, marker='o', label='prediction')
+plt.title('RNN-UKF')
 plt.legend()
 plt.show()
 
@@ -342,31 +374,6 @@ plt.title('RNN-UKF sebelun denormalisasi')
 plt.legend()
 plt.show()
 
-plt.plot(testY, label='true') #testY[0:50] buat plotting coba liat di catatan
-plt.plot(y_pred, label='prediction')
-plt.xlabel('Data ke-')
-plt.ylabel('Harga')
-plt.title('RNN-UKF')
-plt.legend()
-plt.show()
-
-#scoring = [mse_pred,rmse_pred,mae_pred,dstat_pred,run_time]
-print("runtime : ", run_time)
-print("mse : " , mse_pred)
-print("rmse : ", rmse_pred) 
-print("mape : ", mape_pred) 
-print("mae: " , mae_pred)
-print("dstat : " , dstat_pred)
-
-#%%
-np.savetxt('bobot_input.csv', synapse_0, delimiter=',')
-np.savetxt('bobot_hidden.csv', synapse_h, delimiter=',')
-np.savetxt('bobot_output.csv', synapse_1, delimiter=',')
-np.savetxt('loss_ukf.csv', mse_all, delimiter=';')
-
-#%%
-
-
 plt.plot(sigmas_concat[0,0], color='r', marker ='o', ls=None)
 plt.plot(sigmas_concat[1:60],'x')
 plt.plot(sigmas_concat[61:121],'x')
@@ -391,3 +398,17 @@ plt.show()
 print('Kalman dim: ', K.ndim)
 print('Kalman size: ', K.size)
 print('Kalman shape: ', K.shape)
+
+#scoring = [mse_pred,rmse_pred,mae_pred,dstat_pred,run_time]
+print("mse : " , mse_pred)
+print("rmse : ", rmse_pred) 
+print("mape : ", mape_pred) 
+print("mae: " , mae_pred)
+print("dstat : " , dstat_pred)
+print("runtime : ", run_time)
+
+#%%
+np.savetxt('bobot_input.csv', synapse_0, delimiter=',')
+np.savetxt('bobot_hidden.csv', synapse_h, delimiter=',')
+np.savetxt('bobot_output.csv', synapse_1, delimiter=',')
+np.savetxt('loss_ukf.csv', mse_all, delimiter=';')

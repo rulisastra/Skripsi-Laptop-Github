@@ -1,3 +1,5 @@
+# MLP DAN UKF
+
 import pandas as pd
 import numpy as np
 import time
@@ -7,18 +9,17 @@ from scipy.linalg import cholesky
 
 #%% persiapan data
 
-# IDRUSD.csv = 64% | 71#
+# IDRUSD.csv = 64%
 # data baru  mulai 27sep2017.csv = 0.0
 # data baru all = 21%
 # data = 56%
 # Ether mulai 1jul2017 = 52%
 # Ether = 55%
-# Litecoin mulai 1jan2017.csv = 55%
+# Litecoin mulai 1jan2017.csv =     55%
 # NEO jul2017 = 62%
 # NEO all = 63
-# BTCIDR 1sept2017 | 74% 
 
-data = pd.read_csv('Currency Converter.csv',
+data = pd.read_csv('IDRUSD.csv',
                     usecols=[1],
                     engine='python',
                     delimiter=',',
@@ -77,7 +78,7 @@ def norm(x, scale):
 data_raw = normalize(data['value'],(-1,1))
 
 # pembagian data latih dan test
-train_data, test_data = pisahData(data_raw, 0.7, 0.3) #8:2 = 71%
+train_data, test_data = pisahData(data_raw, 0.7, 0.3)
 train_data = train_data.reshape(-1,1) #satu kolom kebawah
 test_data = test_data.reshape(-1,1)
 
@@ -103,18 +104,19 @@ testX, testY = createDataset(test_data, windowSize)
 
 #%% PELATIHAN ====  gunain trainX & trainY ====
 # INISIALISASI banyaknya neuron setiap layer 
-alpha = .1
+alpha = .0003
 batch_dim = trainX.shape[0] # ambil jumlah baris (n) dari trainX(n,m)
 input_dim = windowSize
 hidden_dim = 7 # 7,9,
+hidden_dim2 = 7
 output_dim = 1
 
 np.random.seed(1) # 1 =72%
 
 # BOBOT === inisialisasi bobot awal (baris,kolom)
 synapse_0 = 2*np.random.random((input_dim,hidden_dim)) - 1 # inisialisasi random bobot awal
-synapse_h = 2*np.random.random((hidden_dim,hidden_dim)) - 1 # dengan interval [-1,1]
-synapse_1 = 2*np.random.random((hidden_dim,output_dim)) - 1 # random.random ->> interval [0,1]
+synapse_h = 2*np.random.random((hidden_dim,hidden_dim2)) - 1 # dengan interval [-1,1]
+synapse_1 = 2*np.random.random((hidden_dim2,output_dim)) - 1 # random.random ->> interval [0,1]
 
 synapse_0_update = np.zeros_like(synapse_0) #meng-0 kan semua isi array sesuai shape dr variabel (synapse_0)
 synapse_1_update = np.zeros_like(synapse_1)
@@ -122,10 +124,9 @@ synapse_h_update = np.zeros_like(synapse_h)
 
 # log mse tiap epoch
 mse_all = []
-rmse_all = []
 
 # inisialisasi sebelum train
-jumlah_w = (input_dim*hidden_dim)+(hidden_dim*hidden_dim)+(hidden_dim*output_dim)
+jumlah_w = (input_dim*hidden_dim)+(hidden_dim*hidden_dim2)+(hidden_dim2*output_dim)
 Q = 1*np.identity(jumlah_w) #kovarian Noise process
 R = 1*np.identity(output_dim) #Kovarian Noise measurement(observasi)
 P = 1*np.identity(jumlah_w) #kovarian estimasi vektor state
@@ -178,36 +179,39 @@ epoch = 50 # 100
 start_time = time.time()
 for i in range(epoch):
     index = 0
-    layer_2_value = []
-    context_layer = np.full((batch_dim,hidden_dim),0) 
-    layer_h_deltas = np.zeros(hidden_dim) # context layer (sebelumnya)
+    layer_3_value = []
+    # context_layer = np.full((batch_dim,hidden_dim),0) 
+    layer_h_value = np.zeros(hidden_dim) # context layer (sebelumnya)
+
     while(index+batch_dim<=trainX.shape[0]):        
         # input dan output
         X = trainX[index:index+batch_dim,:]
         Y = trainY[index:index+batch_dim]
         index = index+batch_dim
 
-        # forwardpass = propagated = bawa ke input ~> prev hidden
-        layer_1 = tanh(np.dot(X,synapse_0) + np.dot(context_layer,synapse_h))
+        # forwardpass input ~> hidden
+        layer_1 = tanh(np.dot(X,synapse_0)) # + np.dot(context_layer,synapse_h))
     
-        # hidden ~> output
-        layer_2 = tanh(np.dot(layer_1,synapse_1))
-        layer_2_value.append(layer_2)
+        # hidden ~> hidden2
+        layer_2 = tanh(np.dot(layer_1,synapse_h))
+        
+        # hidden2 ~> output
+        layer_3 = tanh(np.dot(layer_2,synapse_1))
+        layer_3_value.append(layer_3)
     
         # hitung error output
-        layer_2_error = layer_2 - Y[:,None] #problemnya, y diganti dr Y matrix
-        # layer_2_deltas.append((layer_2_error)*dtanh(layer_2))
+        layer_3_error = layer_3 - Y[:,None] 
         
-        # error di output layer -> layer 2 deltas (masuk ke context layer dari hidden layer)
-        layer_2_delta = layer_2_error*dtanh(layer_2)
+        # error di hidden layer_2
+        # layer_2_error = layer_3_error*dtanh(layer_2)
         
-        # error di hidden layer -> layer 1 delta (masuk ke hidden layer dari context layer)
-        layer_1_delta = (np.dot(layer_h_deltas,synapse_h.T) + np.dot(layer_2_delta,synapse_1.T)) * dtanh(layer_1)
+        # error di hidden layer 
+        layer_1_error = (np.dot(layer_h_value,synapse_h.T) + np.dot(layer_3_error,synapse_1.T)) * dtanh(layer_1)
     
         # calculate weight update
-        synapse_1_update = np.dot(np.atleast_2d(layer_1).T,(layer_2_delta))
-        synapse_h_update = np.dot(np.atleast_2d(context_layer).T,(layer_1_delta))
-        synapse_0_update = np.dot(X.T,(layer_1_delta))
+        synapse_1_update = np.dot(np.atleast_2d(layer_1).T,(layer_3_error))
+        synapse_h_update = np.dot(np.atleast_2d(layer_2).T,(layer_1_error))
+        synapse_0_update = np.dot(X.T,(layer_1_error))
         
         # concatenate weight
         synapse_0_c = np.reshape(synapse_0,(-1,1))
@@ -215,9 +219,8 @@ for i in range(epoch):
         synapse_1_c = np.reshape(synapse_1,(-1,1))
         w_concat = np.concatenate((synapse_0_c,synapse_h_c,synapse_1_c), axis=0)
         
-        ''' 
-        ============= UKF di measurement ============= 
-        '''
+        # ============= UKF di measurement ============= 
+    
         #%% Unscented Kalman Filter without filterpy
         beta = 2.
         kappa = 0
@@ -279,7 +282,7 @@ for i in range(epoch):
         K = np.dot(Pxz,inv(Pz)) 
    
         # UPDATE weight
-        innovation = ((Y-layer_2).sum()/len(layer_2_error)) # hitung error pred dan yang diharapkan
+        innovation = ((Y-layer_3).sum()/len(layer_3_error)) # hitung error pred dan yang diharapkan
         w_concat_new_all = w_concat + np.dot(K,innovation)
         w_concat_new_slice = np.reshape((w_concat_new_all[0]),(-1,1))
         w_concat_new = norm(w_concat_new_slice,(-1,1))
@@ -290,8 +293,8 @@ for i in range(epoch):
 #         leading the 5th minor of array is  not positive definite
 #         KURANG UPDATE P !
 # =============================================================================
-        P2 = np.dot(Pz,K.T) # harusnya P2
-        # P = np.sqrt(np.dot(K,P2))
+        P2 = np.dot(Pz,K.T)
+        # P = np.dot(K,P2) 
         
         #%%
         # assign bobot
@@ -316,21 +319,18 @@ for i in range(epoch):
         synapse_h_update *= 0
     
         # update context layer
-        layer_h_deltas = layer_1_delta
+        layer_h_value = layer_1_error
         context_layer = layer_1
         
     # layer_2_value = np.rot90(np.reshape(layer_2_value,(-1,1)),2)
-    layer_2_value = np.reshape(layer_2_value,(-1,1))
-    mse_epoch = mse(trainY,layer_2_value)
+    layer_3_value = np.reshape(layer_3_value,(-1,1))
+    mse_epoch = mse(trainY,layer_3_value)
     mse_all.append(mse_epoch)
-    
-    rmse_epoch = rmse(trainY,layer_2_value)
-    rmse_all.append(rmse_epoch)
     
 run_time = time.time() - start_time
 #%% seberapa besar lossnya???
 
-plt.plot(mse_all,label='loss', marker='x')
+plt.plot(mse_all,label='loss')
 plt.title('Loss (MSE)')
 plt.xlabel('Epoch')
 plt.ylabel('Loss (MSE)')
@@ -338,7 +338,7 @@ plt.legend()
 plt.show()
 
 plt.plot(trainY, marker='o', label='true') #testY[0:50] buat plotting coba liat di catatan
-plt.plot(layer_2_value, marker='o', label='prediction')
+plt.plot(layer_3_value, marker='o', label='prediction')
 plt.title('RNN-UKF')
 plt.legend()
 plt.show()
@@ -399,6 +399,12 @@ plt.show()
 print('Kalman dim: ', K.ndim)
 print('Kalman size: ', K.size)
 print('Kalman shape: ', K.shape)
+
+plt.plot(testY, marker='o', label='true') #testY[0:50] buat plotting coba liat di catatan
+plt.plot(y_pred, marker='o', label='prediction')
+plt.title('RNN-UKF')
+plt.legend()
+plt.show()
 
 #scoring = [mse_pred,rmse_pred,mae_pred,dstat_pred,run_time]
 print("mse : " , mse_pred)
