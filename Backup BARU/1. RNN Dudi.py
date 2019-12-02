@@ -143,7 +143,7 @@ def dstat(x,y):
 
 #%%
 
-epoch = 10
+epoch = 20
 start_time = time.time()
 for i in range(epoch):
     index = 0

@@ -30,6 +30,7 @@ input_dim = 2
 hidden_dim = 10
 output_dim = 1
 
+overallError_all = []
 
 # initialize neural network weights
 synapse_0 = 2*np.random.random((input_dim,hidden_dim)) - 1
@@ -119,22 +120,28 @@ for j in range(10000):
     synapse_1_update *= 0
     synapse_h_update *= 0
     
+    overallError_all.append(overallError)
+    
     # print out progress
     if(j % 1000 == 0):
         print (overallError,d,c)
 
-        '''
-        print (d)
-        print (c)
-        print "Error:" + overallError
-        print "Pred:" + d
-        print "True:" + c
-       
-        out = 0
-        for index,x in enumerate(reversed(d)):
-            out += x*pow(2,index)
-            l = str(a_int) + " + " + str(b_int) + " = " + str(out)
-            print (l)
-
-        '''
-        
+plt.plot(overallError_all,label='loss', marker='x')
+plt.title('Loss (MSE)')
+plt.xlabel('Epoch')
+plt.ylabel('Loss (MSE)')
+plt.legend()
+plt.show()
+# =============================================================================
+#         print (d)
+#         print (c)
+#         print "Error:" + overallError
+#         print "Pred:" + d
+#         print "True:" + c
+#        
+#         out = 0
+#         for index,x in enumerate(reversed(d)):
+#             out += x*pow(2,index)
+#             l = str(a_int) + " + " + str(b_int) + " = " + str(out)
+#             print (l)
+# =============================================================================

@@ -19,7 +19,7 @@ from scipy.linalg import cholesky
 # BTCIDR 1sept2017 | 74% 
 # Currency Converter.csv = 70%
 
-data = pd.read_csv('Currency Converter.csv',
+data = pd.read_csv('Currency Converter - Copy.csv',
                     usecols=[1],
                     engine='python',
                     delimiter=',',
@@ -78,7 +78,7 @@ def norm(x, scale):
 data_raw = normalize(data['value'],(-1,1))
 
 # pembagian data latih dan test
-train_data, test_data = pisahData(data_raw, 0.7, 0.3) #8:2 = 71%
+train_data, test_data = pisahData(data_raw, 0.8, 0.2) #8:2 = 71%
 train_data = train_data.reshape(-1,1) #satu kolom kebawah
 test_data = test_data.reshape(-1,1)
 
@@ -175,7 +175,7 @@ def dstat(x,y):
 
 #%% MULAI EPOCH ============ TRAINING ===================
 
-epoch = 50 # 100
+epoch = 5 # 100
 start_time = time.time()
 for i in range(epoch):
     index = 0
@@ -188,7 +188,7 @@ for i in range(epoch):
         Y = trainY[index:index+batch_dim]
         index = index+batch_dim
 
-        # bawa ke input ~> prev hidden
+        # forwardpass = propagated = bawa ke input ~> prev hidden
         layer_1 = tanh(np.dot(X,synapse_0) + np.dot(context_layer,synapse_h))
     
         # hidden ~> output
@@ -197,6 +197,7 @@ for i in range(epoch):
     
         # hitung error output
         layer_2_error = layer_2 - Y[:,None] #problemnya, y diganti dr Y matrix
+        # layer_2_deltas.append((layer_2_error)*dtanh(layer_2))
         
         # error di output layer -> layer 2 deltas (masuk ke context layer dari hidden layer)
         layer_2_delta = layer_2_error*dtanh(layer_2)
@@ -214,7 +215,10 @@ for i in range(epoch):
         synapse_h_c = np.reshape(synapse_h,(-1,1))
         synapse_1_c = np.reshape(synapse_1,(-1,1))
         w_concat = np.concatenate((synapse_0_c,synapse_h_c,synapse_1_c), axis=0)
- 
+        
+        ''' 
+        ============= UKF di measurement ============= 
+        '''
         #%% Unscented Kalman Filter without filterpy
         beta = 2.
         kappa = 0
@@ -224,11 +228,7 @@ for i in range(epoch):
         #%% SIGMA POINTS around mean
         mean = np.sum(w_concat) / n # mean secara keseluruhan
         U = cholesky((n + lambda_)*P) # sama dg np.sqrt
-# =============================================================================
-#         implements U'*U = (n+kappa)*P. Returns lower triangular matrix.
-#         Take transpose so we can access with U[i]
-#         dikali P biar hold the value
-# =============================================================================
+
         # filterpy version dengan shape (121,60) karena dikali dg P!
         sigmas = np.zeros((2*n+1, n))
         # maka....
@@ -251,38 +251,25 @@ for i in range(epoch):
         # Mz = np.reshape(np.dot(Wm,sigmas_concat),(-1,1)) # yang lama computenya
         Mz = np.dot(np.reshape(Wm,(1,-1)),sigmas_concat) # myu z yang dipake awalnya
         
-        # KOVARIAN ke measurement juga
-# =============================================================================
-#         kmax, n = sigmas.shape
-#         Pz = np.zeros(sigmas_concat.shape)
-#         for k in range(kmax):
-#             c = np.subtract(sigmas_concat[k],Mz)
-#             Pz = Wc[k] * np.outer(c, c) # makin besar nilainya dengan +=
-#         Pz += Q
-#         
-#         # Kalman gain
-#         Pxz = np.zeros(sigmas.shape)
-#         for k in range(kmax):
-#             cc = np.subtract(sigmas[0],Mz)
-#             c = np.subtract(sigmas_concat[k],Mz)
-#             Pxz = Wc[k] * np.outer(cc, c) # makin besar nilainya dengan +=
-# =============================================================================
-
-
-# =============================================================================
-#         tapi menghasilkan complex bilangan 
-#         saat di inverse Pz_inv = inv(Pz)
-# =============================================================================
-        Pz1 = np.subtract(sigmas_concat,Mz)
-        Pz2 = np.dot(Wc,Pz1)
-        Pz = np.dot(Pz2,Pz1.T) + R
+        # KOVARIANCE ke measurement juga
+        # SEMUA BERANTAKAN GARA2 Pz!
+        kmax, n = sigmas.shape
+        Pz = np.zeros(sigmas_concat.shape)
+        for k in range(kmax):
+            c = np.subtract(sigmas_concat[k],Mz)
+            # harusnya +=
+            Pz = Wc[k] * np.outer(c, c) # makin besar nilainya dengan +=
+        Pz += Q
         
-        Zm = np.subtract(sigmas_concat.T,Mz.T)
-        K1 = np.dot(Zm,Pz.T)
-        K2 = np.dot(Wc,K1)
-        K3 = K2 + R
-        K4 = inv(Pz)
-        K = np.dot(K3,K4) 
+        # Kalman gain
+        Pxz = np.zeros(sigmas.shape)
+        for k in range(kmax):
+            cc = np.subtract(sigmas[0],Mz)
+            c = np.subtract(sigmas_concat[k],Mz)
+            # harusnya +=
+            Pxz = Wc[k] * np.outer(cc, c) # makin besar nilainya dengan +=
+
+        K = np.dot(Pxz,inv(Pz)) 
    
         # UPDATE weight
         innovation = ((Y-layer_2).sum()/len(layer_2_error)) # hitung error pred dan yang diharapkan
@@ -291,12 +278,11 @@ for i in range(epoch):
         w_concat_new = norm(w_concat_new_slice,(-1,1))
 
         # UPDATE kovarian
-        # P2 = np.dot(Pz,K.T)
 # =============================================================================
 #         leading the 5th minor of array is  not positive definite
 #         KURANG UPDATE P !
 # =============================================================================
-        P2 = np.dot(Pz,K.T) # harusnya P2
+        P2 = np.dot(Pz,K.T)
         # P = np.sqrt(np.dot(K,P2))
         
         #%%
@@ -306,9 +292,9 @@ for i in range(epoch):
         synapse_1_ukf = np.reshape(w_concat_new[(input_dim*hidden_dim)+(hidden_dim*hidden_dim):w_concat_new.shape[0],0],(hidden_dim,output_dim))
 
         # assign
-        synapse_0_update = synapse_0_ukf
-        synapse_1_update = synapse_h_ukf
-        synapse_h_update = synapse_1_ukf
+        synapse_0_update = synapse_0_ukf * alpha
+        synapse_1_update = synapse_h_ukf * alpha
+        synapse_h_update = synapse_1_ukf * alpha
         
         # reset update
         synapse_0_update *= 0
@@ -319,7 +305,6 @@ for i in range(epoch):
         layer_h_deltas = layer_1_delta
         context_layer = layer_1
         
-    # layer_2_value = np.rot90(np.reshape(layer_2_value,(-1,1)),2)
     layer_2_value = np.reshape(layer_2_value,(-1,1))
     mse_epoch = mse(trainY,layer_2_value)
     mse_all.append(mse_epoch)
@@ -334,12 +319,6 @@ plt.plot(mse_all,label='loss', marker='x')
 plt.title('Loss (MSE)')
 plt.xlabel('Epoch')
 plt.ylabel('Loss (MSE)')
-plt.legend()
-plt.show()
-
-plt.plot(trainY, marker='o', label='true') #testY[0:50] buat plotting coba liat di catatan
-plt.plot(layer_2_value, marker='o', label='prediction')
-plt.title('RNN-UKF')
 plt.legend()
 plt.show()
 
@@ -375,12 +354,10 @@ plt.title('RNN-UKF sebelun denormalisasi')
 plt.legend()
 plt.show()
 
-plt.plot(sigmas_concat[0,0], color='r', marker ='o', ls=None)
-plt.plot(sigmas_concat[1:60],'x')
-plt.plot(sigmas_concat[61:121],'x')
-plt.xlabel('bobot ke')
-plt.ylabel('value')
-plt.title('SIGMAS semua')
+plt.plot(testY[0:50], marker='o', label='true') #testY[0:50] buat plotting coba liat di catatan
+plt.plot(y_pred[0:50], marker='o', label='prediction')
+plt.title('RNN-UKF')
+plt.legend()
 plt.show()
 
 plt.plot(P[0], color='r', marker ='o', ls=None)

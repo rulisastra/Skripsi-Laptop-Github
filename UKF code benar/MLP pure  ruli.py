@@ -102,7 +102,7 @@ testX, testY = createDataset(test_data, windowSize)
 
 #%% PELATIHAN ====  gunain trainX & trainY ====
 # INISIALISASI banyaknya neuron setiap layer 
-alpha = .0003
+alpha = .1
 batch_dim = trainX.shape[0] # ambil jumlah baris (n) dari trainX(n,m)
 input_dim = windowSize
 hidden_dim = 7 # 7,9,
@@ -173,7 +173,7 @@ def dstat(x,y):
 
 #%% MULAI EPOCH ============ TRAINING ===================
 
-epoch = 50 # 100
+epoch = 100 # 100
 start_time = time.time()
 for i in range(epoch):
     index = 0
@@ -231,6 +231,10 @@ for i in range(epoch):
 #         synapse_h = np.reshape(synapse_h,(hidden_dim,hidden_dim2))
 #         synapse_1 = np.reshape(synapse_1,(hidden_dim2,output_dim))
 # =============================================================================
+        
+        synapse_0 += synapse_0_update * alpha
+        synapse_1 += synapse_1_update * alpha
+        synapse_h += synapse_h_update * alpha  
 
         # reset update
         synapse_0_update *= 0
