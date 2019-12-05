@@ -6,7 +6,7 @@ import time
 # from scipy.linalg import cholesky
 from filterpy import kalman
 from filterpy.kalman import unscented_transform as UT
-import ArgUKF
+# import ArgUKF
 #%% persiapan data
 data = pd.read_csv('data.csv',usecols=[1],engine='python',delimiter=',',decimal=".",thousands=',',header=None,names=['date','value'] )
 data['value'] = data['value'].values
@@ -134,7 +134,7 @@ dim_x = trainX.ndim
 dim_z = 1
 
 points = kalman.MerweScaledSigmaPoints(Ldim, alpha=.3, beta=2., kappa=0) #makin besar alpha, makin menyebar data[:train_data], range(train_data)
-kf = ArgUKF.UnscentedKalmanFilter(dim_x=Xdim, dim_z=n_hx_output, dt=.1, hx=None, fx=None, points=points) # sigma = points
+kf = kalman.UnscentedKalmanFilter(dim_x=Xdim, dim_z=n_hx_output, dt=.1, hx=None, fx=None, points=points) # sigma = points
 kf.x = np.array(np.zeros(kf.x.shape)) # initial shape
 kf.P = .2 # inisial uncertainty
 kf.R = .5

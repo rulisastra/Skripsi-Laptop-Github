@@ -8,10 +8,10 @@ import time
 
 from filterpy import kalman
 from filterpy.kalman import unscented_transform as UT
+from filterpy.kalman import UnscentedKalmanFilter as UKF
+# import ArgUKF
 
-import ArgUKF
-
-# from pykalman import UnscentedKalmanFilter as uKF
+# from pykalman import UnscentedKalmanFilter as 
 
 #%% persiapan data
 data = pd.read_csv('data.csv',usecols=[1],engine='python',delimiter=',',decimal=".",thousands=',',header=None,names=['date','value'] )
@@ -140,30 +140,32 @@ P = 1*np.identity(jumlah_w) #kovarian estimasi vektor state
             def hx(x):
                 return x[:1] # return position [x]. Slicing semua kolom 1 menjadi row of array
 '''
-dim_x = trainX.ndim
-dim_z = 1
-
-beta = 2.
-kappa = 0
-lambda_ = 1. # lambda_ = alpha**2 * (n + kappa) - n
-
-##WEIGHTS
-def bobotUKF(data,X,k):
-    lambda_ = points.alpha**2 * (points.n + points.kappa) - points.n
-    Wc = np.full(2*points.n + 1,  1. / (2*(points.n + lambda_)))
-    Wm = np.full(2*points.n + 1,  1. / (2*(points.n + lambda_)))
-    Wc[0] = lambda_ / (points.n + lambda_) + (1. - points.alpha**2 + points.beta)
-    Wm[0] = lambda_ / (points.n + lambda_)
-
-def sigmaPoint(data,X,k,sigmas):
-    sigmas[0] = X
-    sigmas = np.zeros((2*points.n+1, points.n))
-    U = np.sqrt((points.n+lambda_)*kf.P) # sqrt
-    for k in range(points.n):
-        sigmas[k+1]   = X + U[k]
-        sigmas[points.n+k+1] = X - U[k]
-        x = np.dot(Wm, sigmas) #jumlah sigma mean atau means
-        return np.dot(x,points.n)
+# =============================================================================
+# dim_x = trainX.ndim
+# dim_z = 1
+# 
+# beta = 2.
+# kappa = 0
+# lambda_ = 1. # lambda_ = alpha**2 * (n + kappa) - n
+# 
+# ##WEIGHTS
+# def bobotUKF(data,X,k):
+#     lambda_ = points.alpha**2 * (points.n + points.kappa) - points.n
+#     Wc = np.full(2*points.n + 1,  1. / (2*(points.n + lambda_)))
+#     Wm = np.full(2*points.n + 1,  1. / (2*(points.n + lambda_)))
+#     Wc[0] = lambda_ / (points.n + lambda_) + (1. - points.alpha**2 + points.beta)
+#     Wm[0] = lambda_ / (points.n + lambda_)
+# 
+# def sigmaPoint(data,X,k,sigmas):
+#     sigmas[0] = X
+#     sigmas = np.zeros((2*points.n+1, points.n))
+#     U = np.sqrt((points.n+lambda_)*kf.P) # sqrt
+#     for k in range(points.n):
+#         sigmas[k+1]   = X + U[k]
+#         sigmas[points.n+k+1] = X - U[k]
+#         x = np.dot(Wm, sigmas) #jumlah sigma mean atau means
+#         return np.dot(x,points.n)
+# =============================================================================
 '''
             # intinya, UT cuma ngitung mean dan kovarian baru untuk di measurement space
             def UT(data,x,k,sigmas,noise_cov=None,mean_fn=None,residual_fn=None):
@@ -278,60 +280,65 @@ for i in range(epoch):
         synapse_h_c = np.reshape(synapse_h,(-1,1))
         synapse_1_c = np.reshape(synapse_1,(-1,1))
         w_concat = np.concatenate((synapse_0_c,synapse_h_c,synapse_1_c), axis=0)
-        w_concat_eye = np.eye(w_concat.size)
-        # sigma points dari mean dan kovarian pada synapse_1 
 
-        # ukf points (mean dan kovarian) setiap synapse layer
-        synapse_0_sig = np.zeros((len(synapse_0_c),dim_x,1))
-        synapse_h_sig = np.zeros((len(synapse_h_c),dim_x,1))
-        synapse_1_sig = np.zeros((len(synapse_1_c),dim_x,1))
-        w_concat_sig = np.concatenate((synapse_0_sig,synapse_h_sig,synapse_1_sig), axis=0)
-        
-        # hitung bobot tiap points tersebut
-        # Unscented transform untuk trasformasi mean dan kovarian ke tuple (measurement space)       
-        # new mean dan sigmas
-        # update pengukuran
-        # kalman gain
-        
-        x = w_concat
-        n = w_concat.size # julier versi masalah 'dimension of problem'
-        dim_x = w_concat.ndim
-        dim_z = w_concat.ndim
-        points = kalman.MerweScaledSigmaPoints(n, alpha=alpha, beta=beta, kappa=kappa) #makin besar alpha, makin menyebar data[:train_data], range(train_data)
-        kf = ArgUKF.UnscentedKalmanFilter(dim_x, dim_z, dt=.1, hx=None, fx=None, points=points) # sigma = points
-        
-        fx = kf.fx
-        hx = kf.hx
-        
-        sigmas_ = points.s
-        
-        # sigmas = points.sigma_points(x, P
-        num_sigmas = points.num_sigmas
-        sigmas_f = kf.sigmas_f
-        sigmas_h = kf.sigmas_h
-        
-        # bobotan
-        Wm = points.Wm
-        Wc = points.Wc       
-        
+        zs = data
+        Xs, Ps = UKF.batch_filter(zs=w_concat)
 # =============================================================================
-#         xp, Pz = UT(sigmas_h, Wm, Wc, R)
-#         kmax, n = sigmas.shape
-#         Pxz = np.zeros(n,n)
-#         for i in range(num_sigmas):
-#             y = np.subtract(sigmas_h[i],zp)
-#             y_ = np.subtract(sigmas_f[i],xp)
-#             # harusnya +=
-#             Pxz += Wc[i] * np.outer(y_, y)
+#         w_concat_eye = np.eye(w_concat.size)
+#         # sigma points dari mean dan kovarian pada synapse_1 
+# 
+#         # ukf points (mean dan kovarian) setiap synapse layer
+#         synapse_0_sig = np.zeros((len(synapse_0_c),dim_x,1))
+#         synapse_h_sig = np.zeros((len(synapse_h_c),dim_x,1))
+#         synapse_1_sig = np.zeros((len(synapse_1_c),dim_x,1))
+#         w_concat_sig = np.concatenate((synapse_0_sig,synapse_h_sig,synapse_1_sig), axis=0)
+#         
+#         # hitung bobot tiap points tersebut
+#         # Unscented transform untuk trasformasi mean dan kovarian ke tuple (measurement space)       
+#         # new mean dan sigmas
+#         # update pengukuran
+#         # kalman gain
+#         
+#         x = w_concat
+#         n = w_concat.size # julier versi masalah 'dimension of problem'
+#         dim_x = w_concat.ndim
+#         dim_z = w_concat.ndim
+#         points = kalman.MerweScaledSigmaPoints(n, alpha=alpha, beta=beta, kappa=kappa) #makin besar alpha, makin menyebar data[:train_data], range(train_data)
+#         kf = ArgUKF.UnscentedKalmanFilter(dim_x, dim_z, dt=.1, hx=None, fx=None, points=points) # sigma = points
+#         
+#         fx = kf.fx
+#         hx = kf.hx
+#         
+#         sigmas_ = points.s
+#         
+#         # sigmas = points.sigma_points(x, P
+#         num_sigmas = points.num_sigmas
+#         sigmas_f = kf.sigmas_f
+#         sigmas_h = kf.sigmas_h
+#         
+#         # bobotan
+#         Wm = points.Wm
+#         Wc = points.Wc       
+#         
+# # =============================================================================
+# #         xp, Pz = UT(sigmas_h, Wm, Wc, R)
+# #         kmax, n = sigmas.shape
+# #         Pxz = np.zeros(n,n)
+# #         for i in range(num_sigmas):
+# #             y = np.subtract(sigmas_h[i],zp)
+# #             y_ = np.subtract(sigmas_f[i],xp)
+# #             # harusnya +=
+# #             Pxz += Wc[i] * np.outer(y_, y)
+# # =============================================================================
+#         Pn = kf.Pn
+#         P_post = kf.P_post
+#         P_prior = kf.P_prior
+#         points.fn = kf.points_fn
+#         
+#         Pz = kf.Pz
+#         
+#         K = kf.K
 # =============================================================================
-        Pn = kf.Pn
-        P_post = kf.P_post
-        P_prior = kf.P_prior
-        points.fn = kf.points_fn
-        
-        Pz = kf.Pz
-        
-        K = kf.K
             
 '''
         # update weight
@@ -434,3 +441,4 @@ np.savetxt('bobot_output.csv', synapse_1, delimiter=',')
 np.savetxt('loss_ukf.csv', mse_all, delimiter=';')
 
 '''
+np.savetxt('w_concat.csv', w_concat,delimiter=',')

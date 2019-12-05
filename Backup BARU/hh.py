@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 from numpy.linalg import inv
+import copy
 
 #persiapan data
 data = pd.read_csv('IDRUSD.csv',
@@ -65,7 +66,7 @@ trainX, trainY = createDataset(train_data,windowSize)
 testX, testY = createDataset(test_data, windowSize)
 
 #initialize neuron size
-alpha = 0.003
+alpha = 0.1
 batch_dim = trainX.shape[0] #mengambil banyak baris (n) dari trainX(n,m)
 input_dim = windowSize
 hidden_dim = 6
@@ -147,69 +148,87 @@ epoch = 20
 start_time = time.time()
 for i in range(epoch):
     index = 0
-    layer_2_value = []
+    # layer_2_deltas = []
+    layer_2_deltas = []
+    layer_1_values = []
+    layer_1_values.append(np.zeros(hidden_dim))
     context_layer = np.full((batch_dim,hidden_dim),0)
-    layer_h_deltas = np.zeros(hidden_dim)
-    while(index+batch_dim<=trainX.shape[0]):
+    # future_layer_1_delta = np.zeros(hidden_dim)
+    future_layer_1_delta = np.zeros(hidden_dim)
+    for index in range()
         X = trainX[index:index+batch_dim,:]
         Y = trainY[index:index+batch_dim]
         index = index+batch_dim
 
         # forward pass -> input to hidden
-        layer_1 = tanh(np.dot(X,synapse_0)+np.dot(context_layer,synapse_h))
-    
+        # layer_1 = tanh(np.dot(X,synapse_0)+np.dot(context_layer,synapse_h))
+        layer_1 = tanh(np.dot(X,synapse_0)+np.dot(layer_1_values[-1],synapse_h))
+        layer_1 = layer_1_values[-index-1]
+        prev_layer_1 = layer_1_values[-index-2]
+        
         #hidden to output
         layer_2 = tanh(np.dot(layer_1,synapse_1))
-        layer_2_value.append(layer_2)
+        # layer_2_deltas.append(layer_2)
     
         #hitung error output
         layer_2_error = layer_2 - Y[:,None] #problemnya, y diganti dr Y matrix
         # None gunanya nge'wrap' [[value]], disini, jadi satu barus kebawah beraturan
+        layer_2_deltas.append((layer_2_error)*dtanh(layer_2))
         
         #layer 2 deltas (masuk ke context layer dari hidden layer)
-        layer_2_delta = layer_2_error*dtanh(layer_2)
+        #layer_2_delta = layer_2_error*dtanh(layer_2)
+        layer_2_delta = layer_2_deltas[-index-1] # error at output layer
     
         #layer 1 delta (masuk ke hidden layer dari context layer)
-        layer_1_delta = (np.dot(layer_h_deltas,synapse_h.T) + np.dot(layer_2_delta,synapse_1.T)) * dtanh(layer_1)
-    
+        layer_1_delta = (np.dot(future_layer_1_delta,synapse_h.T) + np.dot(layer_2_delta,synapse_1.T)) * dtanh(layer_1)
+        layer_1_values.append(copy.deepcopy(layer_1))
+        
         #calculate weight update
         synapse_1_update = np.dot(np.atleast_2d(layer_1).T,(layer_2_delta))
-        synapse_h_update = np.dot(np.atleast_2d(context_layer).T,(layer_1_delta))
+        synapse_h_update = np.dot(np.atleast_2d(prev_layer_1).T,(layer_1_delta))
         synapse_0_update = np.dot(X.T,(layer_1_delta)) # X bermasalah
         
-        #concatenate weight
-        synapse_0_c = np.reshape(synapse_0,(-1,1)) #reshape satu kolom kebawah
-        synapse_h_c = np.reshape(synapse_h,(-1,1))
-        synapse_1_c = np.reshape(synapse_1,(-1,1))
-        w_concat = np.concatenate((synapse_0_c,synapse_h_c,synapse_1_c), axis=0)
-        
-        #jacobian
-        dsynapse_0 = np.reshape(synapse_0_update,(1,-1)) # satu baris kesamping
-        dsynapse_h = np.reshape(synapse_h_update,(1,-1))
-        dsynapse_1 = np.reshape(synapse_1_update,(1,-1))
-        H = np.concatenate((dsynapse_0,dsynapse_h,dsynapse_1), axis=1)
-        H_transpose = H.T
-        
-        #Kalman Gain
-        K1 = np.dot(H,P)
-        K2 = np.dot(K1,H_transpose)+R # S
-        K3 = inv(K2)
-        K4 = np.dot(P,H_transpose)
-        K = np.dot(K4,K3)
+# =============================================================================
+#         #concatenate weight
+#         synapse_0_c = np.reshape(synapse_0,(-1,1)) #reshape satu kolom kebawah
+#         synapse_h_c = np.reshape(synapse_h,(-1,1))
+#         synapse_1_c = np.reshape(synapse_1,(-1,1))
+#         w_concat = np.concatenate((synapse_0_c,synapse_h_c,synapse_1_c), axis=0)
+#         
+#         #jacobian
+#         dsynapse_0 = np.reshape(synapse_0_update,(1,-1)) # satu baris kesamping
+#         dsynapse_h = np.reshape(synapse_h_update,(1,-1))
+#         dsynapse_1 = np.reshape(synapse_1_update,(1,-1))
+#         H = np.concatenate((dsynapse_0,dsynapse_h,dsynapse_1), axis=1)
+#         H_transpose = H.T
+#         
+#         #Kalman Gain
+#         K1 = np.dot(H,P)
+#         K2 = np.dot(K1,H_transpose)+R
+#         K3 = inv(K2)
+#         K4 = np.dot(P,H_transpose)
+#         K = np.dot(K4,K3)
+# =============================================================================
         
         #update weight
         innovation = ((Y-layer_2).sum()/len(layer_2_error))
-        w_concat_new = w_concat + np.dot(K,innovation)
+# =============================================================================
+#         w_concat_new = w_concat + np.dot(K,innovation)
+#         
+#         #update P
+#         P1 = np.dot(K,H)
+#         P2 = np.dot(P1,P)+Q
+#         P = P-P2
+#         
+#         #assign bobot
+#         synapse_0 = w_concat_new[0:(input_dim*hidden_dim),0]
+#         synapse_h = w_concat_new[(input_dim*hidden_dim):(input_dim*hidden_dim)+(hidden_dim*hidden_dim),0]
+#         synapse_1 = w_concat_new[(input_dim*hidden_dim)+(hidden_dim*hidden_dim):w_concat_new.shape[0],0]
+# =============================================================================
         
-        #update P
-        P1 = np.dot(K,H)
-        P2 = np.dot(P1,P)+Q
-        P = P-P2
-        
-        #assign bobot
-        synapse_0 = w_concat_new[0:(input_dim*hidden_dim),0]
-        synapse_h = w_concat_new[(input_dim*hidden_dim):(input_dim*hidden_dim)+(hidden_dim*hidden_dim),0]
-        synapse_1 = w_concat_new[(input_dim*hidden_dim)+(hidden_dim*hidden_dim):w_concat_new.shape[0],0]
+        #update context layer
+        future_layer_1_delta = layer_1_delta
+        # context_layer = layer_1
         
         #reshape balik bobot
         synapse_0 = np.reshape(synapse_0,(input_dim,hidden_dim))
@@ -221,17 +240,13 @@ for i in range(epoch):
         synapse_1_update *= 0
         synapse_h_update *= 0
         
-        #update context layer
-        layer_h_deltas = layer_1_delta
-        context_layer = layer_1
     
-    layer_2_value = np.reshape(layer_2_value,(-1,1))
-    mse_epoch = mse(trainY,layer_2_value)
+    layer_2_deltas = np.reshape(layer_2_deltas,(-1,1))
+    mse_epoch = mse(trainY,layer_2_deltas)
     mse_all.append(mse_epoch)
 run_time = time.time() - start_time
 
 #%%
-
 plt.plot(mse_all,label='loss', marker = 'x')
 plt.title('Loss (MSE)')
 plt.xlabel('Epoch')
