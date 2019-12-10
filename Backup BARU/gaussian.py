@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 from matplotlib import pyplot as plt
+from scipy.linalg import cholesky
 
 data = pd.read_csv('Currency Converter - Copy.csv',
                     usecols=[1],
@@ -17,7 +18,7 @@ data['value'] = data['value'].astype('float32')
 
 
 data = [1,2,3,4,4]
-data2 = [1,1,2,2,2]
+data2 = np.array([1,1,2,2,2])
 sum_ = np.sum(data)
 sum2_ = np.sum(data2)
 mean = np.mean(data)
@@ -32,6 +33,16 @@ std2 = np.std(data2)
 koef = np.corrcoef(data)
 koef2 = np.corrcoef(data2)
 koef_all = np.corrcoef(data,data2)
+P = np.eye(6)
+Pp = cholesky(P) * P
+
+X = data2
+
+X[0] = X 
+n = X.size
+for k in range (n):
+    X[k+1] = np.subtract(X, -P[k])
+    X[n+k+1] = np.subtract(X, P[k])
 
 #plt.plot(data, norm.pdf(data))
 
