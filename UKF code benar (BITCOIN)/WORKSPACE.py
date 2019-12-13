@@ -18,8 +18,9 @@ from scipy.linalg import cholesky
 # NEO all = 63
 # BTCIDR 1sept2017 | 74% 
 # Currency Converter.csv = 70%
+# Currency Converter - copy.csv 73%
 
-data = pd.read_csv('USDIDR 2000_2019.csv',
+data = pd.read_csv('Currency Converter - copy.csv',
                     usecols=[1],
                     engine='python',
                     delimiter=',',
@@ -397,67 +398,65 @@ print("dstat : " , dstat_pred)
 print("runtime : ", run_time)
 #%% mari coba ============ PREDIKSI ===================
 
-# =============================================================================
-# batch_predict = testX.shape[0] # mengambil banyaknya baris (n) dari testX(n,m)
-# context_layer_p = np.full((batch_predict,hidden_dim),0) # return full array yg isinya (0) sebesar dimensi [batch_predict x hidden_dim]
-# y_pred = [] # hasil akhir Y prediksi
-# index = 0
-# while(index+batch_predict<=testX.shape[0]):
-#     X = testX[index:index+batch_predict,:]
-#     layer_1p = tanh(np.dot(X,synapse_0)+np.dot(context_layer_p,synapse_h))
-#     layer_2p = tanh(np.dot(layer_1p,synapse_1))
-#     y_pred.append(layer_2p)
-#     context_layer_p = layer_1p
-#     index = index+batch_predict
-#     
-# y_pred = denormalize(np.reshape(y_pred,(-1,1)), data['value'], (-1,1))
-# testYseb = testY.reshape(-1,1)
-# testY = denormalize(testY, data['value'], (-1,1))
-# mse_pred = mse(testY,y_pred)
-# rmse_pred = rmse(testY,y_pred)
-# mae_pred = mae(testY,y_pred)
-# mape_pred = mape(testY,y_pred)
-# dstat_pred = dstat(testY,y_pred)
-# scoring = [mse_pred,rmse_pred,mae_pred,mape_pred,dstat_pred,run_time]
-# 
-# plt.plot(testYseb[0:50], label='true') #testY[0:50] buat plotting coba liat di catatan
-# plt.plot(layer_2p[0:50], label='prediction')
-# plt.xlabel('Data ke-')
-# plt.ylabel('jangkauan')
-# plt.title('Jangkauan data uji')
-# plt.legend()
-# plt.show()
-# 
-# plt.plot(testY[0:50], marker='o', label='true') #testY[0:50] buat plotting coba liat di catatan
-# plt.plot(y_pred[0:50], marker='o', label='prediction')
-# plt.title('HASIL UJI dengan metode RNN-UKF')
-# plt.xlabel('Data ke-')
-# plt.ylabel('Harga')
-# plt.legend()
-# plt.show()
-# 
-# # plt.scatter(sigmas[0], color='r', marker ='x', ls=None)
-# # plt.scatter(sigmas[1:91],sigmas[92:182])
-# plt.plot(sigmas[1:91], ls=':')
-# plt.plot(sigmas[92:182], ls=':')
-# plt.plot(sigmas[0,:], color='r', marker ='o')
-# plt.xlabel('sigmas ke-')
-# plt.ylabel('value')
-# plt.title('SIGMAS semua')
-# plt.show()
-# 
-# print('Kalman dim: ', K.ndim)
-# print('Kalman size: ', K.size)
-# print('Kalman shape: ', K.shape)
-# 
-# #scoring = [mse_pred,rmse_pred,mae_pred,dstat_pred,run_time]
-# print("mse : " , mse_pred)
-# print("rmse : ", rmse_pred) 
-# print("mape : ", mape_pred) 
-# print("mae: " , mae_pred)
-# print("dstat : " , dstat_pred)
-# print("runtime : ", run_time)
-# =============================================================================
+batch_predict = testX.shape[0] # mengambil banyaknya baris (n) dari testX(n,m)
+context_layer_p = np.full((batch_predict,hidden_dim),0) # return full array yg isinya (0) sebesar dimensi [batch_predict x hidden_dim]
+y_pred = [] # hasil akhir Y prediksi
+index = 0
+while(index+batch_predict<=testX.shape[0]):
+    X = testX[index:index+batch_predict,:]
+    layer_1p = tanh(np.dot(X,synapse_0)+np.dot(context_layer_p,synapse_h))
+    layer_2p = tanh(np.dot(layer_1p,synapse_1))
+    y_pred.append(layer_2p)
+    context_layer_p = layer_1p
+    index = index+batch_predict
+    
+y_pred = denormalize(np.reshape(y_pred,(-1,1)), data['value'], (-1,1))
+testYseb = testY.reshape(-1,1)
+testY = denormalize(testY, data['value'], (-1,1))
+mse_pred = mse(testY,y_pred)
+rmse_pred = rmse(testY,y_pred)
+mae_pred = mae(testY,y_pred)
+mape_pred = mape(testY,y_pred)
+dstat_pred = dstat(testY,y_pred)
+scoring = [mse_pred,rmse_pred,mae_pred,mape_pred,dstat_pred,run_time]
+
+plt.plot(testYseb[0:50], label='true') #testY[0:50] buat plotting coba liat di catatan
+plt.plot(layer_2p[0:50], label='prediction')
+plt.xlabel('Data ke-')
+plt.ylabel('jangkauan')
+plt.title('Jangkauan data uji')
+plt.legend()
+plt.show()
+
+plt.plot(testY[0:50], marker='o', label='true') #testY[0:50] buat plotting coba liat di catatan
+plt.plot(y_pred[0:50], marker='o', label='prediction')
+plt.title('HASIL UJI dengan metode RNN-UKF')
+plt.xlabel('Data ke-')
+plt.ylabel('Harga')
+plt.legend()
+plt.show()
+
+# plt.scatter(sigmas[0], color='r', marker ='x', ls=None)
+# plt.scatter(sigmas[1:91],sigmas[92:182])
+plt.plot(sigmas[1:91], ls=':')
+plt.plot(sigmas[92:182], ls=':')
+plt.plot(sigmas[0,:], color='r', marker ='o')
+plt.xlabel('sigmas ke-')
+plt.ylabel('value')
+plt.title('SIGMAS semua')
+plt.show()
+
+print('Kalman dim: ', K.ndim)
+print('Kalman size: ', K.size)
+print('Kalman shape: ', K.shape)
+
+#scoring = [mse_pred,rmse_pred,mae_pred,dstat_pred,run_time]
+print("mse : " , mse_pred)
+print("rmse : ", rmse_pred) 
+print("mape : ", mape_pred) 
+print("mae: " , mae_pred)
+print("dstat : " , dstat_pred)
+print("runtime : ", run_time)
 
 #%%
 np.savetxt('bobot_input.csv', synapse_0, delimiter=',')
