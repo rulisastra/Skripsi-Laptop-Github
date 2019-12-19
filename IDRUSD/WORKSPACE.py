@@ -19,7 +19,7 @@ from scipy.linalg import cholesky
 # BTCIDR 1sept2017 | 74% 
 # Currency Converter.csv = 70%
 
-data = pd.read_csv('USDIDR 2000_2019.csv',
+data = pd.read_csv('USDIDR 2000_2019 all.csv',
                     usecols=[1],
                     engine='python',
                     delimiter=',',
@@ -103,7 +103,7 @@ def createDataset(data, windowSize):
 
 # ===================================================
 #%%
-windowSize = 3 # 2,5,6,8 55%
+windowSize = 5 # 2,5,6,8 55%
 epoch = 10 # 100
 hidden_dim = 7 # 2
 
@@ -116,9 +116,9 @@ testX, testY = createDataset(test_data, windowSize)
 batch_dim = trainX.shape[0] # ambil jumlah baris (n) dari trainX(n,m)
 input_dim = windowSize
 output_dim = 1
-alpha = .01 # merwe 1e-3
+alpha = .001 # merwe 1e-3
 beta = 2.
-kappa = 0
+kappa = 1
 
 np.random.seed(1) # 2 dan 7 51%
 
@@ -411,8 +411,8 @@ plt.title('Jangkauan data uji')
 plt.legend()
 plt.show()
 
-plt.plot(testY[0:50], marker='o', label='true') #testY[0:50] buat plotting coba liat di catatan
-plt.plot(y_pred[0:50], marker='o', label='prediction')
+plt.plot(testY[300:400], marker='o', label='true') #testY[0:50] buat plotting coba liat di catatan
+plt.plot(y_pred[300:400], marker='o', label='prediction')
 plt.title('HASIL UJI dengan metode RNN-UKF 50 data awal')
 plt.xlabel('Data ke-')
 plt.ylabel('Harga')

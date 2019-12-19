@@ -38,11 +38,13 @@ Pp = cholesky(P) * P
 
 X = data2
 
-X[0] = X 
-n = X.size
-for k in range (n):
-    X[k+1] = np.subtract(X, -P[k])
-    X[n+k+1] = np.subtract(X, P[k])
+# =============================================================================
+# X[0] = X 
+# n = X.size
+# for k in range (n):
+#     X[k+1] = np.subtract(X, -P[k])
+#     X[n+k+1] = np.subtract(X, P[k])
+# =============================================================================
 
 #plt.plot(data, norm.pdf(data))
 

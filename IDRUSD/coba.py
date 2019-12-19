@@ -4,6 +4,7 @@ import time
 import matplotlib.pyplot as plt
 from numpy.linalg import inv
 from scipy.linalg import cholesky
+from scipy.stats import norm
 
 #%% persiapan data
 
@@ -20,7 +21,7 @@ from scipy.linalg import cholesky
 # Currency Converter.csv = 70%
 # Currency Converter - copy.csv 73%
 
-data = pd.read_csv('USDIDR 2000_2019.csv',
+data = pd.read_csv('USDIDR 2000_2019 all.csv', # USDIDR 2009_2019   ///  USDIDR 2000_2010 cut   /// USDIDR 2000_2019 all
                     usecols=[1],
                     engine='python',
                     delimiter=',',
@@ -126,9 +127,9 @@ def createDataset(data, windowSize):
 
 # ===================================================
 #%%
-windowSize = 3 # 5
-epoch = 10 # 100
-hidden_dim = 7 # 7,9,
+windowSize = 5 # 5 70%
+epoch = 100 # 100
+hidden_dim = 7 # 7,9, ---->>> 73% dengan wn=5 dan hd = 9 dan 7:3
 
 #%%
 trainX, trainY = createDataset(train_data,windowSize)
@@ -139,7 +140,7 @@ testX, testY = createDataset(test_data, windowSize)
 batch_dim = trainX.shape[0] # ambil jumlah baris (n) dari trainX(n,m)
 input_dim = windowSize
 output_dim = 1
-alpha = .1
+alpha = .001
 
 np.random.seed(1) # 1 =72%
 
@@ -212,6 +213,7 @@ for i in range(epoch):
     layer_2_value = []
     context_layer = np.full((batch_dim,hidden_dim),0) 
     layer_h_deltas = np.zeros(hidden_dim) # context layer (sebelumnya)
+    sigmas_concat = []
     while(index+batch_dim<=trainX.shape[0]):        
         # input dan output
         X = trainX[index:index+batch_dim,:]
@@ -256,13 +258,14 @@ for i in range(epoch):
         
         #%% Unscented Kalman Filter without filterpy
         
-        # X_ = masuk # myu
-        X_ = w_concat_transpose
+        X_ = w_concat.T # myu
+        # X_ = w_concat_transpose
         n = X_.size # julier versi masalah 'dimension of problem'
-        # n = X_.ndim #2
+        L = X_.ndim #2
         beta = 2.
         kappa = 0 # dash
         # lambda_ = 0.001
+        # lambda_ = 1 # ngaruh, menurunkan dstat 3%
         lambda_ = alpha**2 * (n + kappa) - n #q bisoi, dash
         
         #%% SIGMA POINTS around mean
@@ -287,6 +290,34 @@ for i in range(epoch):
         
         Mz = np.dot(Wm,sigmas)
         # Mz = np.sum(np.dot(Wm,sigmas)) # yang bener
+        
+        # mengasmbil nilai eye dari sigmas
+        sigmas_reshape_1 = sigmas[0]
+        sigmas_reshape_2 = sigmas[1:n+1,:] * np.eye(n)
+        sigmas_reshape_3 = sigmas[n+1::,:] * np.eye(n)
+        
+        # Menjadikan satu baris
+        ones = np.reshape(np.ones(n),(-1,1))
+        sigmas_1_c = np.reshape(sigmas_reshape_1.T,(-1,1))
+        sigmas_2_c = np.dot(sigmas_reshape_2,ones)
+        sigmas_3_c = np.dot(sigmas_reshape_3,ones)
+        sigmas_concat = np.concatenate((sigmas_1_c,sigmas_2_c,sigmas_3_c), axis=1)
+        
+        sigmamin = np.subtract(sigmas,Mz)
+        sigmamin_t = sigmamin.T
+        sigmamin_c = np.dot(sigmamin,sigmamin.T)
+        sigmamin_bbt = np.dot(Wc,sigmamin_c)
+        sigmamin_bbt_sum = sigmamin_bbt.sum() + R # Kovarian
+        
+        sigmamin_lama = sigmas
+        si_gmamin_c = np.dot(sigmamin_lama,sigmamin.T)
+        si_gmamin_bbt = np.dot(Wc,si_gmamin_c)
+        si_gmamin_bbt_sum = sigmamin_bbt.sum() # Tut
+        
+        Kk = si_gmamin_bbt_sum * inv(sigmamin_bbt_sum) # harus inv
+        Pp = P - np.dot(Kk,np.dot(sigmamin_bbt_sum,Kk.T))
+        
+        mean_bobot_awal = np.mean(w_concat)
         
         # KOVARIAN ke measurement juga
         kmax, n = sigmas.shape
@@ -349,6 +380,15 @@ for i in range(epoch):
     
 run_time = time.time() - start_time
 #%% seberapa besar lossnya???
+
+plt.plot(sigmas_1_c[0:3],label='sigma utama (mean)', marker='o', ls='-')
+plt.plot(sigmas_2_c[0:3],label='sigma lain', marker='x', ls=None)
+plt.plot(sigmas_3_c[0:3],label='sigma lain', marker='x', ls=None)
+plt.title('SIGMAS')
+plt.xlabel('sigmas ke-')
+plt.ylabel('value')
+plt.legend()
+plt.show()
 
 plt.plot(mse_all, marker='x')
 plt.title('Loss (MSE)')
@@ -419,8 +459,8 @@ plt.title('Jangkauan data uji keseluruhan 1000 data')
 plt.legend()
 plt.show()
 
-plt.plot(testY[0:50], marker='o', label='true') #testY[0:50] buat plotting coba liat di catatan
-plt.plot(y_pred[0:50], marker='o', label='prediction')
+plt.plot(testY[300:400], marker='o', label='true') #testY[0:50] buat plotting coba liat di catatan
+plt.plot(y_pred[300:400], marker='o', label='prediction')
 plt.title('HASIL UJI dengan metode RNN-UKF 50 data awal')
 plt.xlabel('Data ke-')
 plt.ylabel('Harga')
