@@ -372,8 +372,8 @@ mape_pred = mape(trainY,layer_2_value)
 dstat_pred = dstat(trainY,layer_2_value)
 scoring = [mse_pred,rmse_pred,mae_pred,mape_pred,dstat_pred,run_time]
 
-# print("mse : " , mse_pred)
-# print("mape : ", mape_pred) 
+print("mse : " , mse_pred)
+print("mape : ", mape_pred) 
 print("mae: " , mae_pred)
 print("rmse : ", rmse_pred) 
 print("dstat : " , dstat_pred)

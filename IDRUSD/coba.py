@@ -20,8 +20,9 @@ from scipy.stats import norm
 # BTCIDR 1sept2017 | 74% 
 # Currency Converter.csv = 70%
 # Currency Converter - copy.csv 73%
+# 1000 data.csv = 72% tapi mse naik
 
-data = pd.read_csv('USDIDR 2000_2019 all.csv', # USDIDR 2009_2019   ///  USDIDR 2000_2010 cut   /// USDIDR 2000_2019 all
+data = pd.read_csv('USDIDR 2009_2019.csv', # USDIDR 2009_2019   ///  USDIDR 2000_2010 cut   /// USDIDR 2000_2019 all
                     usecols=[1],
                     engine='python',
                     delimiter=',',
@@ -128,8 +129,8 @@ def createDataset(data, windowSize):
 # ===================================================
 #%%
 windowSize = 5 # 5 70%
-epoch = 100 # 100
-hidden_dim = 7 # 7,9, ---->>> 73% dengan wn=5 dan hd = 9 dan 7:3
+epoch = 10 # 100
+hidden_dim = 9 # 7,9, ---->>> 73% dengan wn=5 dan hd = 9 dan 7:3
 
 #%%
 trainX, trainY = createDataset(train_data,windowSize)
@@ -160,7 +161,7 @@ rmse_all = []
 # inisialisasi sebelum train
 jumlah_w = (input_dim*hidden_dim)+(hidden_dim*hidden_dim)+(hidden_dim*output_dim)
 Q = 1*np.identity(jumlah_w) #kovarian Noise process
-R = 1*np.identity(output_dim) #Kovarian Noise measurement(observasi)
+R = 1*np.identity(jumlah_w) #Kovarian Noise measurement(observasi)
 P = 1*np.identity(jumlah_w) #kovarian estimasi vektor state
 
 #%% EVALUASI ====
@@ -206,7 +207,8 @@ def dstat(x,y):
     return float(Dstat)
 
 #%% MULAI EPOCH ============ TRAINING ===================
-
+epsilon = 0.98 # sbg forgetting factor berdasarkan dash 2014
+gamma = 1.98 # untuk minimize error karena fluktuasi (dash)
 start_time = time.time()
 for i in range(epoch):
     index = 0
@@ -244,7 +246,7 @@ for i in range(epoch):
         synapse_h_update = np.dot(np.atleast_2d(context_layer).T,(layer_1_delta))
         synapse_0_update = np.dot(X.T,(layer_1_delta))
         
-        # concatenate weight
+        #%% concatenate weight
         synapse_0_c = np.reshape(synapse_0,(-1,1))
         synapse_h_c = np.reshape(synapse_h,(-1,1))
         synapse_1_c = np.reshape(synapse_1,(-1,1))
@@ -257,16 +259,16 @@ for i in range(epoch):
         masuk = np.concatenate((synapse_0_masuk,synapse_h_masuk,synapse_1_masuk), axis=1)
         
         #%% Unscented Kalman Filter without filterpy
+        # X_ = masuk # myu
+        X_ = w_concat_transpose
         
-        X_ = w_concat.T # myu
-        # X_ = w_concat_transpose
         n = X_.size # julier versi masalah 'dimension of problem'
         L = X_.ndim #2
         beta = 2.
         kappa = 0 # dash
         # lambda_ = 0.001
         # lambda_ = 1 # ngaruh, menurunkan dstat 3%
-        lambda_ = alpha**2 * (n + kappa) - n #q bisoi, dash
+        lambda_ = alpha**2 * (n + kappa) - n # bisoi, dash
         
         #%% SIGMA POINTS around mean
         U = cholesky((n + lambda_)*P) # sama dg np.sqrt
@@ -278,18 +280,6 @@ for i in range(epoch):
         for k in range(n): # gabung kebawah.. jadinya 121,60
             sigmas[k+1] = np.subtract(X_, -U[k])
             sigmas[n+k+1] = np.subtract(X_, U[k])
-
-        #%% BOBOT SIGMA dari Merwe
-        c_ = .5 / (n + lambda_)
-        Wm = np.full(2*n+1, c_)
-        Wc = Wm # size (121,) atau (n,)
-        Wc[0] = lambda_ / (n + lambda_) + (1 - alpha**2 + beta)
-        Wm[0] = lambda_ / (n + lambda_)
-        
-        # SIGMA Unscented Transform  (biar hold value dg eyeP) ke measurement
-        
-        Mz = np.dot(Wm,sigmas)
-        # Mz = np.sum(np.dot(Wm,sigmas)) # yang bener
         
         # mengasmbil nilai eye dari sigmas
         sigmas_reshape_1 = sigmas[0]
@@ -303,22 +293,36 @@ for i in range(epoch):
         sigmas_3_c = np.dot(sigmas_reshape_3,ones)
         sigmas_concat = np.concatenate((sigmas_1_c,sigmas_2_c,sigmas_3_c), axis=1)
         
-        sigmamin = np.subtract(sigmas,Mz)
-        sigmamin_t = sigmamin.T
-        sigmamin_c = np.dot(sigmamin,sigmamin.T)
-        sigmamin_bbt = np.dot(Wc,sigmamin_c)
-        sigmamin_bbt_sum = sigmamin_bbt.sum() + R # Kovarian
+        #%% BOBOT SIGMA dari Merwe
+        c_ = .5 / (n + lambda_)
+        # Wm = np.full(2*n+1, c_)
+        Wm  = np.full(2*n+1, 1 / (2*(n + lambda_)))
+        Wc = Wm # size (121,) atau (n,)
+        Wc[0] = lambda_ / (n + lambda_) + (1 - alpha**2 + beta)
+        Wm[0] = lambda_ / (n + lambda_)
         
-        sigmamin_lama = sigmas
-        si_gmamin_c = np.dot(sigmamin_lama,sigmamin.T)
-        si_gmamin_bbt = np.dot(Wc,si_gmamin_c)
-        si_gmamin_bbt_sum = sigmamin_bbt.sum() # Tut
+        #%% SIGMA Unscented Transform  (biar hold value dg eyeP) ke measurement
+        Mz = np.dot(Wm,sigmas)
+        # Mz = np.sum(np.dot(Wm,sigmas)) # yang bener
+        '''
+            sigmamin = np.subtract(sigmas,Mz)
+            sigmamin_t = sigmamin.T
+            sigmamin_square = np.dot(sigmamin,sigmamin_t)
+            sigmamin_bbt = np.dot(Wc,sigmamin_square)
+            # add_R = sigmamin_square + R
+            # sigmamin_bbt_sum = sigmamin_bbt.sum() + R # Kovarian Pz
+            
+            sigmamin_lama = sigmamin
+            si_gmamin_square = np.dot(sigmamin_lama,sigmamin_t)
+            si_gmamin_bbt = np.dot(Wc,si_gmamin_square)
+            # si_gmamin_bbt_sum = sigmamin_bbt.sum() # Tut
+            
+            Kk = np.dot(si_gmamin_bbt,inv(sigmamin_bbt))# harus inv
+            Pp_1 = np.dot(sigmamin_bbt,Kk.T)
+            Pp = P - np.dot(Kk,Pp_1)
         
-        Kk = si_gmamin_bbt_sum * inv(sigmamin_bbt_sum) # harus inv
-        Pp = P - np.dot(Kk,np.dot(sigmamin_bbt_sum,Kk.T))
-        
-        mean_bobot_awal = np.mean(w_concat)
-        
+        '''
+
         # KOVARIAN ke measurement juga
         kmax, n = sigmas.shape
         Pz = np.zeros(n)
@@ -326,30 +330,36 @@ for i in range(epoch):
             c = np.subtract(sigmas[k],Mz)
             Pz = Wc[k] * np.outer(c, c)
             # makin besar nilainya dengan +=
-        Pz += Q
-        Pz = Pz.sum() # + R
-        # Pz = np.round(Pz,2)
+        Pz += R
+        Pz = Pz.sum()
         
         # Kalman gain
         Pxz = np.zeros(sigmas.shape) # Tut
         for k in range(kmax):
             cc = np.subtract(X_,Mz)
             Pxz = Wc[k] * np.outer(cc, c) # makin besar nilainya dengan +=
-        # Pxz = np.round(Pxz,2)
         Pxz = Pxz.sum()
-        
-        # Kalman gain
-        # K = np.dot(Pxz,inv(Pz))
-        K = Pz * Pxz # harus inv
-        
-        P = P - np.dot(K,np.dot(Pz,K.T))
+            
+        # PDxz = (np.dot(epsilon,Pxz) + np.dot(layer_2_error.T,layer_2_error))/ epsilon + 1
 
+        # Kalman gain
+        K = np.dot(Pxz,Pz) # K = Pz_sum * Pxz_sum # harus inv
+        # K = K1[0]
+        
+        # innovasi dari dash 2014
+        P1 = np.dot(gamma**-2,np.identity(n))
+        P2 = np.subtract(inv(P),P1) # inv berdaasarkan paper dash 2014
+        P3 = np.dot(Pz,K.T)
+        P = P2 - np.dot(K,P3)
+        
         #%%
-        innovation =  ((Y-layer_2).sum()/len(layer_2_error))
+        innovation = ((Y-layer_2).sum()/len(layer_2_error))
        
-        # K_inn = K*innovation
         w_concat_new = w_concat + np.dot(K,innovation)
-        # w_concat_new = w_concat + K_inn
+# =============================================================================
+#         w_concat_new2 = np.reshape(w_concat_new1[0],(-1,1))
+#         w_concat_new = norm(w_concat_new2,(-1,1))
+# =============================================================================
         
         #assign bobot
         synapse_0 = w_concat_new[0:(input_dim*hidden_dim),0]
@@ -459,8 +469,8 @@ plt.title('Jangkauan data uji keseluruhan 1000 data')
 plt.legend()
 plt.show()
 
-plt.plot(testY[300:400], marker='o', label='true') #testY[0:50] buat plotting coba liat di catatan
-plt.plot(y_pred[300:400], marker='o', label='prediction')
+plt.plot(testY[50:100], marker='o', label='true') #testY[0:50] buat plotting coba liat di catatan
+plt.plot(y_pred[50:100], marker='o', label='prediction')
 plt.title('HASIL UJI dengan metode RNN-UKF 50 data awal')
 plt.xlabel('Data ke-')
 plt.ylabel('Harga')

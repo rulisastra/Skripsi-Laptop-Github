@@ -4,6 +4,7 @@ from scipy.stats import norm
 from matplotlib import pyplot as plt
 from scipy.linalg import cholesky
 
+
 data = pd.read_csv('Currency Converter - Copy.csv',
                     usecols=[1],
                     engine='python',
