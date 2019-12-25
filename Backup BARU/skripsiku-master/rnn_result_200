@@ -1,0 +1,721 @@
+------------ Day 2 • Timesteps 3 ------------
+Average Acc 67.56
+Average Train Loss 0.6100073
+Average Validation Loss 0.64720297
+Precision 0.6777942
+Recall 0.99296224
+F-Measure 0.8056519031524658
+
+------------ Day 4 • Timesteps 3 ------------
+Average Acc 62.66
+Average Train Loss 0.63729626
+Average Validation Loss 0.67126954
+Precision 0.63296103
+Recall 0.9711754
+F-Measure 0.7664138078689575
+
+------------ Day 6 • Timesteps 3 ------------
+Average Acc 62.49
+Average Train Loss 0.62675583
+Average Validation Loss 0.6847549
+Precision 0.6310809
+Recall 0.96557933
+F-Measure 0.763291597366333
+
+------------ Day 8 • Timesteps 3 ------------
+Average Acc 62.83
+Average Train Loss 0.6219374
+Average Validation Loss 0.64756596
+Precision 0.6303275
+Recall 0.9542661
+F-Measure 0.7591854333877563
+
+------------ Day 10 • Timesteps 3 ------------
+Average Acc 63.92
+Average Train Loss 0.6309891
+Average Validation Loss 0.6746839
+Precision 0.63881314
+Recall 0.9859767
+F-Measure 0.775306224822998
+
+------------ Day 12 • Timesteps 3 ------------
+Average Acc 63.98
+Average Train Loss 0.6049191
+Average Validation Loss 0.6519272
+Precision 0.6436041
+Recall 0.95340556
+F-Measure 0.7684559226036072
+
+------------ Day 14 • Timesteps 3 ------------
+Average Acc 66.09
+Average Train Loss 0.5909858
+Average Validation Loss 0.61985636
+Precision 0.66514164
+Recall 0.9455059
+F-Measure 0.7809223532676697
+
+------------ Day 16 • Timesteps 3 ------------
+Average Acc 64.35
+Average Train Loss 0.5984973
+Average Validation Loss 0.6417805
+Precision 0.6427976
+Recall 0.95976955
+F-Measure 0.7699366211891174
+
+------------ Day 18 • Timesteps 3 ------------
+Average Acc 63.84
+Average Train Loss 0.60803324
+Average Validation Loss 0.62519056
+Precision 0.64309555
+Recall 0.9442582
+F-Measure 0.7651076912879944
+
+------------ Day 20 • Timesteps 3 ------------
+Average Acc 64.96
+Average Train Loss 0.5947502
+Average Validation Loss 0.63643026
+Precision 0.6436926
+Recall 0.956354
+F-Measure 0.7694751024246216
+
+------------ Day 22 • Timesteps 3 ------------
+Average Acc 65.92
+Average Train Loss 0.59964097
+Average Validation Loss 0.6313985
+Precision 0.6608688
+Recall 0.95214033
+F-Measure 0.7802061438560486
+
+------------ Day 24 • Timesteps 3 ------------
+Average Acc 63.16
+Average Train Loss 0.5899761
+Average Validation Loss 0.63060975
+Precision 0.6321726
+Recall 0.9430129
+F-Measure 0.756922721862793
+
+------------ Day 26 • Timesteps 3 ------------
+Average Acc 66.10
+Average Train Loss 0.59491426
+Average Validation Loss 0.62743545
+Precision 0.6630191
+Recall 0.93109596
+F-Measure 0.7745168209075928
+
+------------ Day 28 • Timesteps 3 ------------
+Average Acc 66.72
+Average Train Loss 0.5778388
+Average Validation Loss 0.6241478
+Precision 0.6626485
+Recall 0.9492162
+F-Measure 0.780458390712738
+
+------------ Day 30 • Timesteps 3 ------------
+Average Acc 67.20
+Average Train Loss 0.5575207
+Average Validation Loss 0.6264151
+Precision 0.6776304
+Recall 0.92456543
+F-Measure 0.7820687294006348
+
+------------ Day 32 • Timesteps 3 ------------
+Average Acc 65.70
+Average Train Loss 0.5600566
+Average Validation Loss 0.6007749
+Precision 0.6473422
+Recall 0.9476827
+F-Measure 0.7692357301712036
+
+------------ Day 34 • Timesteps 3 ------------
+Average Acc 68.38
+Average Train Loss 0.5698352
+Average Validation Loss 0.6251169
+Precision 0.6851969
+Recall 0.94802874
+F-Measure 0.795464277267456
+
+------------ Day 36 • Timesteps 3 ------------
+Average Acc 67.70
+Average Train Loss 0.5520923
+Average Validation Loss 0.6050165
+Precision 0.6782455
+Recall 0.94476736
+F-Measure 0.7896231412887573
+
+------------ Day 38 • Timesteps 3 ------------
+Average Acc 69.11
+Average Train Loss 0.53701144
+Average Validation Loss 0.5885557
+Precision 0.683574
+Recall 0.9500756
+F-Measure 0.7950872778892517
+
+------------ Day 40 • Timesteps 3 ------------
+Average Acc 71.06
+Average Train Loss 0.5151681
+Average Validation Loss 0.5824297
+Precision 0.70700383
+Recall 0.95019245
+F-Measure 0.8107545375823975
+
+------------ Day 42 • Timesteps 3 ------------
+Average Acc 71.56
+Average Train Loss 0.51848906
+Average Validation Loss 0.5700645
+Precision 0.7145902
+Recall 0.9489273
+F-Measure 0.8152534365653992
+
+------------ Day 44 • Timesteps 3 ------------
+Average Acc 70.53
+Average Train Loss 0.5068719
+Average Validation Loss 0.5581181
+Precision 0.7043107
+Recall 0.9399222
+F-Measure 0.8052353262901306
+
+------------ Day 46 • Timesteps 3 ------------
+Average Acc 71.98
+Average Train Loss 0.49712858
+Average Validation Loss 0.54315805
+Precision 0.7169361
+Recall 0.9647161
+F-Measure 0.8225717544555664
+
+------------ Day 48 • Timesteps 3 ------------
+Average Acc 73.59
+Average Train Loss 0.49234352
+Average Validation Loss 0.5292804
+Precision 0.73033905
+Recall 0.96611613
+F-Measure 0.8318431377410889
+
+------------ Day 50 • Timesteps 3 ------------
+Average Acc 73.08
+Average Train Loss 0.48232985
+Average Validation Loss 0.57947594
+Precision 0.7248546
+Recall 0.95329446
+F-Measure 0.8235262632369995
+
+------------ Day 52 • Timesteps 3 ------------
+Average Acc 74.83
+Average Train Loss 0.49051246
+Average Validation Loss 0.5143198
+Precision 0.74237645
+Recall 0.95668983
+F-Measure 0.8360167741775513
+
+------------ Day 54 • Timesteps 3 ------------
+Average Acc 75.26
+Average Train Loss 0.45190334
+Average Validation Loss 0.501345
+Precision 0.74482745
+Recall 0.9588994
+F-Measure 0.8384144306182861
+
+------------ Day 56 • Timesteps 3 ------------
+Average Acc 77.30
+Average Train Loss 0.46799412
+Average Validation Loss 0.51023245
+Precision 0.7664373
+Recall 0.9585168
+F-Measure 0.8517826199531555
+
+------------ Day 58 • Timesteps 3 ------------
+Average Acc 75.28
+Average Train Loss 0.4452826
+Average Validation Loss 0.5179657
+Precision 0.7521513
+Recall 0.9477626
+F-Measure 0.8387023210525513
+
+------------ Day 60 • Timesteps 3 ------------
+Average Acc 76.68
+Average Train Loss 0.42790818
+Average Validation Loss 0.46533737
+Precision 0.7659534
+Recall 0.948781
+F-Measure 0.8476205468177795
+
+------------ Day 2 • Timesteps 5 ------------
+Average Acc 67.53
+Average Train Loss 0.6165898
+Average Validation Loss 0.6461508
+Precision 0.6834184
+Recall 0.9766591
+F-Measure 0.8041393160820007
+
+------------ Day 4 • Timesteps 5 ------------
+Average Acc 63.04
+Average Train Loss 0.6466451
+Average Validation Loss 0.66623175
+Precision 0.6318974
+Recall 0.9941201
+F-Measure 0.7726631760597229
+
+------------ Day 6 • Timesteps 5 ------------
+Average Acc 61.25
+Average Train Loss 0.6393794
+Average Validation Loss 0.70001495
+Precision 0.6169839
+Recall 0.9755691
+F-Measure 0.7559062838554382
+
+------------ Day 8 • Timesteps 5 ------------
+Average Acc 61.15
+Average Train Loss 0.63361645
+Average Validation Loss 0.66282
+Precision 0.6122227
+Recall 0.97570735
+F-Measure 0.752363383769989
+
+------------ Day 10 • Timesteps 5 ------------
+Average Acc 62.26
+Average Train Loss 0.6241805
+Average Validation Loss 0.7291484
+Precision 0.62097514
+Recall 0.96054137
+F-Measure 0.7543042898178101
+
+------------ Day 12 • Timesteps 5 ------------
+Average Acc 62.59
+Average Train Loss 0.64305323
+Average Validation Loss 0.65536577
+Precision 0.62707853
+Recall 0.9960431
+F-Measure 0.7696247100830078
+
+------------ Day 14 • Timesteps 5 ------------
+Average Acc 62.68
+Average Train Loss 0.6321499
+Average Validation Loss 0.65312964
+Precision 0.62796605
+Recall 0.9819082
+F-Measure 0.7660287618637085
+
+------------ Day 16 • Timesteps 5 ------------
+Average Acc 65.01
+Average Train Loss 0.62660223
+Average Validation Loss 0.64093626
+Precision 0.65349543
+Recall 0.95022404
+F-Measure 0.7744086384773254
+
+------------ Day 18 • Timesteps 5 ------------
+Average Acc 61.08
+Average Train Loss 0.6367444
+Average Validation Loss 0.6554407
+Precision 0.61423236
+Recall 0.9750741
+F-Measure 0.7536898255348206
+
+------------ Day 20 • Timesteps 5 ------------
+Average Acc 64.14
+Average Train Loss 0.6091767
+Average Validation Loss 0.6199766
+Precision 0.64321136
+Recall 0.94908744
+F-Measure 0.7667704820632935
+
+------------ Day 22 • Timesteps 5 ------------
+Average Acc 64.00
+Average Train Loss 0.61753
+Average Validation Loss 0.6293013
+Precision 0.638932
+Recall 0.9551954
+F-Measure 0.7656914591789246
+
+------------ Day 24 • Timesteps 5 ------------
+Average Acc 64.22
+Average Train Loss 0.62018096
+Average Validation Loss 0.6390847
+Precision 0.6389634
+Recall 0.95687264
+F-Measure 0.7662524580955505
+
+------------ Day 26 • Timesteps 5 ------------
+Average Acc 65.14
+Average Train Loss 0.59744585
+Average Validation Loss 0.62327886
+Precision 0.6485647
+Recall 0.9462966
+F-Measure 0.7696400284767151
+
+------------ Day 28 • Timesteps 5 ------------
+Average Acc 65.82
+Average Train Loss 0.5816712
+Average Validation Loss 0.6095645
+Precision 0.6480934
+Recall 0.9554947
+F-Measure 0.7723302841186523
+
+------------ Day 30 • Timesteps 5 ------------
+Average Acc 65.30
+Average Train Loss 0.5956157
+Average Validation Loss 0.63075745
+Precision 0.6499862
+Recall 0.9518887
+F-Measure 0.7724879384040833
+
+------------ Day 32 • Timesteps 5 ------------
+Average Acc 65.10
+Average Train Loss 0.59003955
+Average Validation Loss 0.6332046
+Precision 0.64887047
+Recall 0.96420896
+F-Measure 0.7757171988487244
+
+------------ Day 34 • Timesteps 5 ------------
+Average Acc 65.46
+Average Train Loss 0.58383316
+Average Validation Loss 0.61628556
+Precision 0.662299
+Recall 0.9367753
+F-Measure 0.7759805917739868
+
+------------ Day 36 • Timesteps 5 ------------
+Average Acc 68.35
+Average Train Loss 0.57835233
+Average Validation Loss 0.6011137
+Precision 0.68423885
+Recall 0.95472175
+F-Measure 0.7971609830856323
+
+------------ Day 38 • Timesteps 5 ------------
+Average Acc 68.97
+Average Train Loss 0.56706053
+Average Validation Loss 0.59460825
+Precision 0.68375796
+Recall 0.95726365
+F-Measure 0.7977185249328613
+
+------------ Day 40 • Timesteps 5 ------------
+Average Acc 71.36
+Average Train Loss 0.5469762
+Average Validation Loss 0.6272027
+Precision 0.722564
+Recall 0.9437477
+F-Measure 0.8184760212898254
+
+------------ Day 42 • Timesteps 5 ------------
+Average Acc 68.46
+Average Train Loss 0.5545333
+Average Validation Loss 0.59194916
+Precision 0.6996983
+Recall 0.92464507
+F-Measure 0.7965958118438721
+
+------------ Day 44 • Timesteps 5 ------------
+Average Acc 71.67
+Average Train Loss 0.5197859
+Average Validation Loss 0.55739284
+Precision 0.71705544
+Recall 0.95092326
+F-Measure 0.8175939321517944
+
+------------ Day 46 • Timesteps 5 ------------
+Average Acc 72.97
+Average Train Loss 0.5327728
+Average Validation Loss 0.5439619
+Precision 0.7254845
+Recall 0.96122295
+F-Measure 0.8268799781799316
+
+------------ Day 48 • Timesteps 5 ------------
+Average Acc 73.43
+Average Train Loss 0.5091239
+Average Validation Loss 0.5334579
+Precision 0.73166144
+Recall 0.9640347
+F-Measure 0.831926167011261
+
+------------ Day 50 • Timesteps 5 ------------
+Average Acc 75.39
+Average Train Loss 0.5048243
+Average Validation Loss 0.5243486
+Precision 0.7487989
+Recall 0.96307725
+F-Measure 0.8425272703170776
+
+------------ Day 52 • Timesteps 5 ------------
+Average Acc 72.79
+Average Train Loss 0.5312818
+Average Validation Loss 0.52800304
+Precision 0.7499263
+Recall 0.892955
+F-Measure 0.8152146339416504
+
+------------ Day 54 • Timesteps 5 ------------
+Average Acc 72.48
+Average Train Loss 0.5384227
+Average Validation Loss 0.54781216
+Precision 0.7662767
+Recall 0.8582649
+F-Measure 0.8096664547920227
+
+------------ Day 56 • Timesteps 5 ------------
+Average Acc 73.74
+Average Train Loss 0.48447007
+Average Validation Loss 0.5125983
+Precision 0.7325198
+Recall 0.960971
+F-Measure 0.8313364386558533
+
+------------ Day 58 • Timesteps 5 ------------
+Average Acc 73.40
+Average Train Loss 0.4844896
+Average Validation Loss 0.5205034
+Precision 0.73479706
+Recall 0.94854486
+F-Measure 0.8281002640724182
+
+------------ Day 60 • Timesteps 5 ------------
+Average Acc 76.74
+Average Train Loss 0.48606473
+Average Validation Loss 0.5160052
+Precision 0.7635671
+Recall 0.96335506
+F-Measure 0.8519043326377869
+
+------------ Day 2 • Timesteps 7 ------------
+Average Acc 65.25
+Average Train Loss 0.62309587
+Average Validation Loss 0.62755704
+Precision 0.6547307
+Recall 0.9937026
+F-Measure 0.7893648147583008
+
+------------ Day 4 • Timesteps 7 ------------
+Average Acc 63.17
+Average Train Loss 0.65729153
+Average Validation Loss 0.6578025
+Precision 0.6322938
+Recall 0.9979583
+F-Measure 0.7741168737411499
+
+------------ Day 6 • Timesteps 7 ------------
+Average Acc 63.53
+Average Train Loss 0.65498465
+Average Validation Loss 0.65845764
+Precision 0.63572407
+Recall 0.9983654
+F-Measure 0.776805579662323
+
+------------ Day 8 • Timesteps 7 ------------
+Average Acc 63.01
+Average Train Loss 0.6590573
+Average Validation Loss 0.65499985
+Precision 0.63307667
+Recall 0.99013156
+F-Measure 0.7723336815834045
+
+------------ Day 10 • Timesteps 7 ------------
+Average Acc 60.97
+Average Train Loss 0.64939135
+Average Validation Loss 0.64943635
+Precision 0.6101987
+Recall 0.99658096
+F-Measure 0.7569332122802734
+
+------------ Day 12 • Timesteps 7 ------------
+Average Acc 63.62
+Average Train Loss 0.64673233
+Average Validation Loss 0.65412426
+Precision 0.63673353
+Recall 0.9983139
+F-Measure 0.7775431275367737
+
+------------ Day 14 • Timesteps 7 ------------
+Average Acc 63.47
+Average Train Loss 0.63485605
+Average Validation Loss 0.64867866
+Precision 0.6386933
+Recall 0.97551775
+F-Measure 0.7719643115997314
+
+------------ Day 16 • Timesteps 7 ------------
+Average Acc 61.96
+Average Train Loss 0.6445359
+Average Validation Loss 0.6566073
+Precision 0.61919606
+Recall 0.9827164
+F-Measure 0.7597095370292664
+
+------------ Day 18 • Timesteps 7 ------------
+Average Acc 62.02
+Average Train Loss 0.6370057
+Average Validation Loss 0.63888186
+Precision 0.6211637
+Recall 0.991955
+F-Measure 0.7639443874359131
+
+------------ Day 20 • Timesteps 7 ------------
+Average Acc 62.34
+Average Train Loss 0.6403407
+Average Validation Loss 0.6518549
+Precision 0.6234947
+Recall 0.98737496
+F-Measure 0.7643362879753113
+
+------------ Day 22 • Timesteps 7 ------------
+Average Acc 61.70
+Average Train Loss 0.6336457
+Average Validation Loss 0.64699614
+Precision 0.620755
+Recall 0.9780698
+F-Measure 0.7594850659370422
+
+------------ Day 24 • Timesteps 7 ------------
+Average Acc 61.26
+Average Train Loss 0.65098876
+Average Validation Loss 0.65522414
+Precision 0.61292374
+Recall 0.9983605
+F-Measure 0.7595418095588684
+
+------------ Day 26 • Timesteps 7 ------------
+Average Acc 64.31
+Average Train Loss 0.6125577
+Average Validation Loss 0.638961
+Precision 0.64536417
+Recall 0.948318
+F-Measure 0.7680458426475525
+
+------------ Day 28 • Timesteps 7 ------------
+Average Acc 63.00
+Average Train Loss 0.63607615
+Average Validation Loss 0.6546892
+Precision 0.64651513
+Recall 0.89295214
+F-Measure 0.7500088214874268
+
+------------ Day 30 • Timesteps 7 ------------
+Average Acc 66.22
+Average Train Loss 0.6141541
+Average Validation Loss 0.6215117
+Precision 0.670001
+Recall 0.9344713
+F-Measure 0.7804393768310547
+
+------------ Day 32 • Timesteps 7 ------------
+Average Acc 65.95
+Average Train Loss 0.6117561
+Average Validation Loss 0.6317562
+Precision 0.6624027
+Recall 0.97182035
+F-Measure 0.7878195643424988
+
+------------ Day 34 • Timesteps 7 ------------
+Average Acc 68.04
+Average Train Loss 0.58151406
+Average Validation Loss 0.6260785
+Precision 0.686522
+Recall 0.94620883
+F-Measure 0.7957137227058411
+
+------------ Day 36 • Timesteps 7 ------------
+Average Acc 66.60
+Average Train Loss 0.59794044
+Average Validation Loss 0.6168498
+Precision 0.669422
+Recall 0.96057475
+F-Measure 0.7889952659606934
+
+------------ Day 38 • Timesteps 7 ------------
+Average Acc 67.60
+Average Train Loss 0.5992702
+Average Validation Loss 0.6119773
+Precision 0.6924615
+Recall 0.9058758
+F-Measure 0.7849208116531372
+
+------------ Day 40 • Timesteps 7 ------------
+Average Acc 69.71
+Average Train Loss 0.5723413
+Average Validation Loss 0.58516294
+Precision 0.6989733
+Recall 0.95205545
+F-Measure 0.8061172366142273
+
+------------ Day 42 • Timesteps 7 ------------
+Average Acc 69.85
+Average Train Loss 0.54593116
+Average Validation Loss 0.57043403
+Precision 0.692638
+Recall 0.9593258
+F-Measure 0.8044552803039551
+
+------------ Day 44 • Timesteps 7 ------------
+Average Acc 71.13
+Average Train Loss 0.574813
+Average Validation Loss 0.592574
+Precision 0.7106454
+Recall 0.9679869
+F-Measure 0.8195903897285461
+
+------------ Day 46 • Timesteps 7 ------------
+Average Acc 71.96
+Average Train Loss 0.55012906
+Average Validation Loss 0.5563907
+Precision 0.71434784
+Recall 0.96725017
+F-Measure 0.8217815160751343
+
+------------ Day 48 • Timesteps 7 ------------
+Average Acc 69.01
+Average Train Loss 0.5695461
+Average Validation Loss 0.58265847
+Precision 0.69742054
+Recall 0.94238806
+F-Measure 0.8016067147254944
+
+------------ Day 50 • Timesteps 7 ------------
+Average Acc 69.84
+Average Train Loss 0.5403721
+Average Validation Loss 0.5627608
+Precision 0.6973614
+Recall 0.962348
+F-Measure 0.8087010383605957
+
+------------ Day 52 • Timesteps 7 ------------
+Average Acc 73.48
+Average Train Loss 0.526057
+Average Validation Loss 0.53878623
+Precision 0.7354201
+Recall 0.9485528
+F-Measure 0.828498899936676
+
+------------ Day 54 • Timesteps 7 ------------
+Average Acc 73.60
+Average Train Loss 0.5426773
+Average Validation Loss 0.5475743
+Precision 0.7568959
+Recall 0.8928383
+F-Measure 0.8192660808563232
+
+------------ Day 56 • Timesteps 7 ------------
+Average Acc 73.81
+Average Train Loss 0.4953273
+Average Validation Loss 0.58720624
+Precision 0.7357647
+Recall 0.94940215
+F-Measure 0.8290414214134216
+
+------------ Day 58 • Timesteps 7 ------------
+Average Acc 74.76
+Average Train Loss 0.50190556
+Average Validation Loss 0.57573426
+Precision 0.75537956
+Recall 0.9359838
+F-Measure 0.8360391855239868
+
+------------ Day 60 • Timesteps 7 ------------
+Average Acc 72.55
+Average Train Loss 0.5101347
+Average Validation Loss 0.5180154
+Precision 0.72578347
+Recall 0.95387995
+F-Measure 0.8243440389633179
+
+77.29626893997192 Days 56 Timesteps 3

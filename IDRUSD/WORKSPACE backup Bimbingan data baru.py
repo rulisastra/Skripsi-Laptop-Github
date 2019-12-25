@@ -20,7 +20,7 @@ from scipy.linalg import cholesky
 # Currency Converter.csv = 70%
 # Currency Converter - copy.csv 73%
 
-data = pd.read_csv('USDIDR 2000_2019.csv',
+data = pd.read_csv('USDIDR 2009_2019.csv',
                     usecols=[1],
                     engine='python',
                     delimiter=',',
@@ -79,7 +79,7 @@ def norm(x, scale):
 data_raw = np.reshape(normalize(data['value'],(-1,1)),(-1,1))
 
 # pembagian data latih dan test
-train_data, test_data = pisahData(data_raw, 0.7, 0.3) #8:2 = 71%
+train_data, test_data = pisahData(data_raw, 0.6, 0.4) #8:2 = 71%
 # =============================================================================
 # train_data = train_data.reshape(-1,1) #satu kolom kebawah
 # test_data = test_data.reshape(-1,1)

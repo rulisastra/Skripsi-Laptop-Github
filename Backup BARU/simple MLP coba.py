@@ -224,13 +224,6 @@ for i in range(epoch):
         synapse_0_update *= 0
         synapse_1_update *= 0
         # synapse_h_update *= 0
-        plt.plot(layer_2_error,label='loss', marker = 'x')
-        plt.title('Loss (MSE)')
-        plt.xlabel('Epoch')
-        plt.ylabel('Loss (MSE)')
-        plt.legend()
-        plt.show()
-        print(layer_2_error)
         #update context layer
 # =============================================================================
 #         layer_h_deltas = layer_1_delta

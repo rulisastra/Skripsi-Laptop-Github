@@ -19,10 +19,12 @@ from scipy.stats import norm
 # NEO all = 63
 # BTCIDR 1sept2017 | 74% 
 # Currency Converter.csv = 70%
-# Currency Converter - copy.csv 73%
+# Currency Converter - copy.csv 73% malah jadi 54% dengan model yang baru
 # 1000 data.csv = 72% tapi mse naik
 
-data = pd.read_csv('USDIDR 2009_2019.csv', # USDIDR 2009_2019   ///  USDIDR 2000_2010 cut   /// USDIDR 2000_2019 all
+# USDIDR 2009_2019 = 48% dengan model yang baru
+
+data = pd.read_csv('USDIDR 1000 data.csv', # USDIDR 2009_2019   ///  USDIDR 2000_2010 cut   /// USDIDR 2000_2019 all
                     usecols=[1],
                     engine='python',
                     delimiter=',',
@@ -81,7 +83,7 @@ def norm(x, scale):
 data_raw = np.reshape(normalize(data['value'],(-1,1)),(-1,1))
 
 # pembagian data latih dan test
-train_data, test_data = pisahData(data_raw, 0.7, 0.3) #8:2 = 71%
+train_data, test_data = pisahData(data_raw, 0.8, 0.2) #8:2 = 71%
 # =============================================================================
 # train_data = train_data.reshape(-1,1) #satu kolom kebawah
 # test_data = test_data.reshape(-1,1)
@@ -100,8 +102,8 @@ plt.ylabel('Jangkauan Harga (-1,1)')
 plt.show()
 
 plt.plot(data, c='b', label='test', ls=None)
-plt.plot(data[1:3499], c='g', label='training', ls=None)
-plt.title('Pembagian Data [7:3]')
+plt.plot(data[1:train_data.size], c='g', label='training', ls=None)
+plt.title('Pembagian Data [8:2]')
 plt.xlabel('Data ke-')
 plt.ylabel('Harga (USD)')
 plt.legend()
@@ -109,7 +111,7 @@ plt.show()
 
 plt.plot(data_raw, c='b', label='test', ls=None)
 plt.plot(train_data[0:-1], c='r', label='training', ls=None)
-plt.title('Pembagian Data [7:3]')
+plt.title('Pembagian Data [8:2]')
 plt.xlabel('Data ke-')
 plt.ylabel('Jangkauan Harga')
 plt.legend()
@@ -129,8 +131,8 @@ def createDataset(data, windowSize):
 # ===================================================
 #%%
 windowSize = 5 # 5 70%
-epoch = 10 # 100
-hidden_dim = 9 # 7,9, ---->>> 73% dengan wn=5 dan hd = 9 dan 7:3
+epoch = 100 # 100
+hidden_dim = 7 # 7,9, ---->>> 73% dengan wn=5 dan hd = 9 dan 7:3
 
 #%%
 trainX, trainY = createDataset(train_data,windowSize)
@@ -141,7 +143,11 @@ testX, testY = createDataset(test_data, windowSize)
 batch_dim = trainX.shape[0] # ambil jumlah baris (n) dari trainX(n,m)
 input_dim = windowSize
 output_dim = 1
-alpha = .001
+
+# log mse tiap epoch
+mse_all = []
+rmse_all = []
+alpha = 1
 
 np.random.seed(1) # 1 =72%
 
@@ -154,14 +160,10 @@ synapse_0_update = np.zeros_like(synapse_0) #meng-0 kan semua isi array sesuai s
 synapse_1_update = np.zeros_like(synapse_1)
 synapse_h_update = np.zeros_like(synapse_h)
 
-# log mse tiap epoch
-mse_all = []
-rmse_all = []
-
 # inisialisasi sebelum train
 jumlah_w = (input_dim*hidden_dim)+(hidden_dim*hidden_dim)+(hidden_dim*output_dim)
 Q = 1*np.identity(jumlah_w) #kovarian Noise process
-R = 1*np.identity(jumlah_w) #Kovarian Noise measurement(observasi)
+R = 1*np.identity(output_dim) #Kovarian Noise measurement(observasi) output_dim
 P = 1*np.identity(jumlah_w) #kovarian estimasi vektor state
 
 #%% EVALUASI ====
@@ -261,7 +263,6 @@ for i in range(epoch):
         #%% Unscented Kalman Filter without filterpy
         # X_ = masuk # myu
         X_ = w_concat_transpose
-        
         n = X_.size # julier versi masalah 'dimension of problem'
         L = X_.ndim #2
         beta = 2.
@@ -277,23 +278,23 @@ for i in range(epoch):
         sigmas = np.zeros((2*n+1, n))
         sigmas[0] = X_ # filterpy version dengan shape (121,60) karena dikali dg P!
         # maka....
-        for k in range(n): # gabung kebawah.. jadinya 121,60
-            sigmas[k+1] = np.subtract(X_, -U[k])
-            sigmas[n+k+1] = np.subtract(X_, U[k])
+        for i in range(n): # gabung kebawah.. jadinya 121,60
+            sigmas[i+1] = np.subtract(X_, -U[i])
+            sigmas[n+i+1] = np.subtract(X_, U[i])
         
         # mengasmbil nilai eye dari sigmas
         sigmas_reshape_1 = sigmas[0]
         sigmas_reshape_2 = sigmas[1:n+1,:] * np.eye(n)
         sigmas_reshape_3 = sigmas[n+1::,:] * np.eye(n)
         
-        # Menjadikan satu baris
+        # Sigma dengan 3 kolom (3 titik sigmas)
         ones = np.reshape(np.ones(n),(-1,1))
-        sigmas_1_c = np.reshape(sigmas_reshape_1.T,(-1,1))
-        sigmas_2_c = np.dot(sigmas_reshape_2,ones)
-        sigmas_3_c = np.dot(sigmas_reshape_3,ones)
-        sigmas_concat = np.concatenate((sigmas_1_c,sigmas_2_c,sigmas_3_c), axis=1)
+        sigmas_1 = np.reshape(sigmas_reshape_1.T,(-1,1))
+        sigmas_2 = np.dot(sigmas_reshape_2,ones)
+        sigmas_3 = np.dot(sigmas_reshape_3,ones)
+        sigmas_concat = np.concatenate((sigmas_1,sigmas_2,sigmas_3), axis=1)
         
-        #%% BOBOT SIGMA dari Merwe
+        #%% BOBOT SIGMA dari Merwe (tetap nilainya)
         c_ = .5 / (n + lambda_)
         # Wm = np.full(2*n+1, c_)
         Wm  = np.full(2*n+1, 1 / (2*(n + lambda_)))
@@ -303,25 +304,6 @@ for i in range(epoch):
         
         #%% SIGMA Unscented Transform  (biar hold value dg eyeP) ke measurement
         Mz = np.dot(Wm,sigmas)
-        # Mz = np.sum(np.dot(Wm,sigmas)) # yang bener
-        '''
-            sigmamin = np.subtract(sigmas,Mz)
-            sigmamin_t = sigmamin.T
-            sigmamin_square = np.dot(sigmamin,sigmamin_t)
-            sigmamin_bbt = np.dot(Wc,sigmamin_square)
-            # add_R = sigmamin_square + R
-            # sigmamin_bbt_sum = sigmamin_bbt.sum() + R # Kovarian Pz
-            
-            sigmamin_lama = sigmamin
-            si_gmamin_square = np.dot(sigmamin_lama,sigmamin_t)
-            si_gmamin_bbt = np.dot(Wc,si_gmamin_square)
-            # si_gmamin_bbt_sum = sigmamin_bbt.sum() # Tut
-            
-            Kk = np.dot(si_gmamin_bbt,inv(sigmamin_bbt))# harus inv
-            Pp_1 = np.dot(sigmamin_bbt,Kk.T)
-            Pp = P - np.dot(Kk,Pp_1)
-        
-        '''
 
         # KOVARIAN ke measurement juga
         kmax, n = sigmas.shape
@@ -329,37 +311,35 @@ for i in range(epoch):
         for k in range(kmax):
             c = np.subtract(sigmas[k],Mz)
             Pz = Wc[k] * np.outer(c, c)
-            # makin besar nilainya dengan +=
-        Pz += R
-        Pz = Pz.sum()
+        Pz += R # sebagai S
         
-        # Kalman gain
+        # Cross covariance Weight sebelum dan weights sesudah unscented transform
         Pxz = np.zeros(sigmas.shape) # Tut
         for k in range(kmax):
-            cc = np.subtract(X_,Mz)
-            Pxz = Wc[k] * np.outer(cc, c) # makin besar nilainya dengan +=
-        Pxz = Pxz.sum()
-            
-        # PDxz = (np.dot(epsilon,Pxz) + np.dot(layer_2_error.T,layer_2_error))/ epsilon + 1
+            cc = np.subtract(X_,Mz) # sebagai T
+            Pxz = Wc[k] * np.outer(cc, c)
 
         # Kalman gain
-        K = np.dot(Pxz,Pz) # K = Pz_sum * Pxz_sum # harus inv
-        # K = K1[0]
+        K1 = np.dot(Pxz,inv(P))
+        Knorm = np.reshape(norm(K1[:,0],(-1,1)),(-1,1)) # tambahan doang
+        K = np.reshape(K1[:,0],(-1,1))
         
         # innovasi dari dash 2014
-        P1 = np.dot(gamma**-2,np.identity(n))
-        P2 = np.subtract(inv(P),P1) # inv berdaasarkan paper dash 2014
-        P3 = np.dot(Pz,K.T)
-        P = P2 - np.dot(K,P3)
+        dash = np.dot(gamma**-2,np.identity(n))
+# =============================================================================
+#         P2 = np.subtract(inv(P),P1) # inv berdaasarkan paper dash 2014
+#         P3 = np.dot(Pz,K.T)
+#         P = P2 - np.dot(K,P3) # besarnya error kovarian matriks
+# =============================================================================
+        
+        # P = P - np.dot(Pz,K) # np.dot(Pz,K.T))
+        P = P - np.dot(K,np.dot(Pz.sum(),K.T)) 
+        P += Q
         
         #%%
         innovation = ((Y-layer_2).sum()/len(layer_2_error))
        
         w_concat_new = w_concat + np.dot(K,innovation)
-# =============================================================================
-#         w_concat_new2 = np.reshape(w_concat_new1[0],(-1,1))
-#         w_concat_new = norm(w_concat_new2,(-1,1))
-# =============================================================================
         
         #assign bobot
         synapse_0 = w_concat_new[0:(input_dim*hidden_dim),0]
@@ -391,20 +371,34 @@ for i in range(epoch):
 run_time = time.time() - start_time
 #%% seberapa besar lossnya???
 
-plt.plot(sigmas_1_c[0:3],label='sigma utama (mean)', marker='o', ls='-')
-plt.plot(sigmas_2_c[0:3],label='sigma lain', marker='x', ls=None)
-plt.plot(sigmas_3_c[0:3],label='sigma lain', marker='x', ls=None)
+plt.plot(sigmas_1,label='sigma utama (mean)', marker='o', ls='-')
+plt.plot(sigmas_2,label='sigma lain', marker='x', ls='None', color='r')
+plt.plot(sigmas_3,label='sigma lain', marker='x', ls='None', color='r')
 plt.title('SIGMAS')
 plt.xlabel('sigmas ke-')
 plt.ylabel('value')
 plt.legend()
 plt.show()
 
+# =============================================================================
+# plt.plot(sigmas[0,3],label='sigma utama (mean)', marker='o', ls='-')
+# plt.plot(sigmas[1:n+1,3],label='sigma lain', marker='x', ls='None', color='r')
+# plt.plot(sigmas[n+1::,3],label='sigma lain', marker='x', ls='None', color='g')
+# plt.title('SIGMAS')
+# plt.xlabel('sigmas ke-')
+# plt.ylabel('value')
+# plt.legend()
+# plt.show()
+# =============================================================================
+
 plt.plot(mse_all, marker='x')
 plt.title('Loss (MSE)')
 plt.xlabel('Epoch')
 plt.ylabel('Loss (MSE)')
 plt.show()
+
+# saviing
+np.savetxt('loss_ukf_LR(1).csv', mse_all, delimiter=';', header='LR 1') 
 
 np.savetxt('loss_ukf.csv', mse_all, delimiter=';')
 
@@ -430,6 +424,7 @@ rmse_pred = rmse(trainY,layer_2_value)
 mape_pred = mape(trainY,layer_2_value)
 dstat_pred = dstat(trainY,layer_2_value)
 scoring = [mse_pred,rmse_pred,mae_pred,mape_pred,dstat_pred,run_time]
+np.savetxt('loss_ukf_train.csv', mse_all, delimiter=';')
 
 print("Training mse : " , mse_pred)
 print("Training mape : ", mape_pred) 
@@ -443,6 +438,7 @@ batch_predict = testX.shape[0] # mengambil banyaknya baris (n) dari testX(n,m)
 context_layer_p = np.full((batch_predict,hidden_dim),0) # return full array yg isinya (0) sebesar dimensi [batch_predict x hidden_dim]
 y_pred = [] # hasil akhir Y prediksi
 index = 0
+mse_pred_all = []
 while(index+batch_predict<=testX.shape[0]):
     X = testX[index:index+batch_predict,:]
     layer_1p = tanh(np.dot(X,synapse_0)+np.dot(context_layer_p,synapse_h))
@@ -455,6 +451,7 @@ y_pred = denormalize(np.reshape(y_pred,(-1,1)), data['value'], (-1,1))
 testYseb = testY.reshape(-1,1)
 testY = denormalize(testY, data['value'], (-1,1))
 mse_pred = mse(testY,y_pred)
+mse_pred_all.append(mse_pred)
 rmse_pred = rmse(testY,y_pred)
 mae_pred = mae(testY,y_pred)
 mape_pred = mape(testY,y_pred)
@@ -477,18 +474,6 @@ plt.ylabel('Harga')
 plt.legend()
 plt.show()
 
-# =============================================================================
-# # plt.scatter(sigmas[0], color='r', marker ='x', ls=None)
-# # plt.scatter(sigmas[1:91],sigmas[92:182])
-# plt.plot(sigmas[1:91], ls=':')
-# plt.plot(sigmas[92:182], ls=':')
-# plt.plot(sigmas[0,:], color='r', marker ='o')
-# plt.xlabel('sigmas ke-')
-# plt.ylabel('value')
-# plt.title('SIGMAS semua')
-# plt.show()
-# =============================================================================
-
 print('Kalman dim: ', K.ndim)
 print('Kalman size: ', K.size)
 print('Kalman shape: ', K.shape)
@@ -505,4 +490,4 @@ print("runtime : ", run_time)
 np.savetxt('bobot_input.csv', synapse_0, delimiter=',')
 np.savetxt('bobot_hidden.csv', synapse_h, delimiter=',')
 np.savetxt('bobot_output.csv', synapse_1, delimiter=',')
-np.savetxt('loss_ukf.csv', mse_all, delimiter=';')
+np.savetxt('loss_ukf_uji.csv', mse_pred_all, delimiter=';')

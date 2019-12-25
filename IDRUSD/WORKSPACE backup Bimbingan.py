@@ -19,7 +19,7 @@ from scipy.linalg import cholesky
 # BTCIDR 1sept2017 | 74% 
 # Currency Converter.csv = 70%
 
-data = pd.read_csv('USDIDR 2000_2019.csv',
+data = pd.read_csv('Currency Converter - Copy.csv',
                     usecols=[1],
                     engine='python',
                     delimiter=',',
