@@ -131,7 +131,7 @@ def createDataset(data, windowSize):
 # ===================================================
 #%%
 windowSize = 5 # 5 70%
-epoch = 100 # 100
+epoch = 10 # 100
 hidden_dim = 7 # 7,9, ---->>> 73% dengan wn=5 dan hd = 9 dan 7:3
 
 #%%
@@ -147,7 +147,7 @@ output_dim = 1
 # log mse tiap epoch
 mse_all = []
 rmse_all = []
-alpha = 1
+alpha = 0.001
 
 np.random.seed(1) # 1 =72%
 
