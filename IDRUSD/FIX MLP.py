@@ -71,7 +71,7 @@ windowSize = 5 # 5 70%
 epoch = 100 # 100
 hidden_dim = 7
 
-alpha = .001
+alpha = 1
 input_dim = windowSize
 output_dim = 1
 
@@ -155,15 +155,15 @@ start_time = time.time()
 for i in range(epoch):
     index = 0
     layer_2_value = []
-    # context_layer = np.full((batch_dim,hidden_dim),0)
-    # layer_h_deltas = np.zeros(hidden_dim)
+    context_layer = np.full((batch_dim,hidden_dim),0)
+    layer_h_deltas = np.zeros(hidden_dim)
     while(index+batch_dim<=trainX.shape[0]):
         X = trainX[index:index+batch_dim,:]
         Y = trainY[index:index+batch_dim]
         index = index+batch_dim
 
         # forward pass -> input to hidden
-        layer_1 = tanh(np.dot(X,synapse_0)) # +np.dot(context_layer,synapse_h))
+        layer_1 = tanh(np.dot(X,synapse_0)+ context_layer)
     
         #hidden to output
         layer_2 = tanh(np.dot(layer_1,synapse_1))
@@ -284,10 +284,8 @@ for i in range(epoch):
         synapse_1_update *= 0
         # synapse_h_update *= 0
         # update context layer
-# =============================================================================
-#         layer_h_deltas = layer_1_delta
-#         context_layer = layer_1
-# =============================================================================
+        layer_h_deltas = layer_1_delta
+        context_layer = layer_1
     
     layer_2_value = np.reshape(layer_2_value,(-1,1))
     mse_epoch = mse(trainY,layer_2_value)
@@ -334,7 +332,7 @@ mae_pred = mae(trainY,layer_2_value)
 rmse_pred = rmse(trainY,layer_2_value)
 mape_pred = mape(trainY,layer_2_value)
 dstat_pred = dstat(trainY,layer_2_value)
-scoring = [mse_pred,rmse_pred,mae_pred,mape_pred,dstat_pred,run_time]
+
 np.savetxt('loss_ukf_train.csv', mse_all, delimiter=';')
 
 print("Training mse : " , mse_pred)
@@ -368,7 +366,9 @@ rmse_pred = rmse(testY,y_pred)
 mae_pred = mae(testY,y_pred)
 mape_pred = mape(testY,y_pred)
 dstat_pred = dstat(testY,y_pred)
-scoring = [mse_pred,rmse_pred,mae_pred,mape_pred,dstat_pred,run_time]
+
+A_scoring_test = np.reshape([mae_pred,mse_pred,mape_pred,rmse_pred,dstat_pred,run_time],(1,-1))
+
 
 plt.plot(testYseb, label='true') #testY[0:50] buat plotting coba liat di catatan
 plt.plot(layer_2p, label='prediction')

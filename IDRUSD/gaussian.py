@@ -82,3 +82,17 @@ plt.title('Custom order of elements')
 l = plt.legend(loc='upper right')
 l.set_zorder(20)  # put the legend on top
 plt.show()
+
+df = pd.read_csv('w_concat.csv')
+w = df.to_numpy()
+df.plot.kde()
+plt.show()
+
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
+
+plt.plot([0.00409960926442099, 0.00409960926442083, 0.004099609264420652, 0.004099609264420653,
+          0.004099609264420585, 0.0040996092644205884, 0.004099609264420545, 0.004099609264420517,
+          0.004099609264420514, 0.004099609264420513])
+plt.gca().yaxis.set_major_formatter(mtick.FormatStrFormatter('%.6f'))
+plt.show()
