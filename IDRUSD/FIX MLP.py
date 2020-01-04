@@ -67,11 +67,11 @@ def createDataset(data, windowSize):
 
 #initialize neuron size
 
-windowSize = 5 # 5 70%
+windowSize = 3 # 5 70%
 epoch = 100 # 100
-hidden_dim = 7
+hidden_dim = 5
 
-alpha = 1
+alpha = 0.001
 input_dim = windowSize
 output_dim = 1
 
@@ -87,6 +87,14 @@ def tanh(x):
 
 def dtanh(x):
     return (1-tanh(x)**2)
+
+def sigmoid(x):
+    output = (1/(1+np.exp(-x)))
+    return output
+
+def dsigmoid(x):
+    outputd = (1/(1+np.exp(-x)))
+    return (outputd*(1-outputd))
 
 #inisialisasi random BOBOOOTT awal JST dengan random.random ->> interval [0,1]
 synapse_0 = 2*np.random.random((input_dim,hidden_dim)) - 1 #inisialisasi
@@ -141,7 +149,9 @@ def mape(x,y):
     return mape
 
 def dstat(x,y):
-    dstat = 0
+    dstat = 
+    
+    
     n = len(y)
     for i in range(n-1):
         if(((x[i+1]-y[i])*(y[i+1]-y[i]))>0):
@@ -155,7 +165,7 @@ start_time = time.time()
 for i in range(epoch):
     index = 0
     layer_2_value = []
-    context_layer = np.full((batch_dim,hidden_dim),0)
+    prev_layer = np.full((batch_dim,hidden_dim),0)
     layer_h_deltas = np.zeros(hidden_dim)
     while(index+batch_dim<=trainX.shape[0]):
         X = trainX[index:index+batch_dim,:]
@@ -163,26 +173,33 @@ for i in range(epoch):
         index = index+batch_dim
 
         # forward pass -> input to hidden
-        layer_1 = tanh(np.dot(X,synapse_0)+ context_layer)
-    
+        # layer_1 = tanh(np.dot(X,synapse_0))#  + prev_layer)
+        layer_1 = sigmoid(np.dot(X,synapse_0)) #gradient descent
+        
+        
         #hidden to output
-        layer_2 = tanh(np.dot(layer_1,synapse_1))
+        # layer_2 = tanh(np.dot(layer_1,synapse_1))
+        layer_2 = sigmoid(np.dot(layer_1,synapse_1))
         layer_2_value.append(layer_2)
     
         #hitung error output
         layer_2_error = layer_2 - Y[:,None] #problemnya, y diganti dr Y matrix
         # None gunanya nge'wrap' [[value]], disini, jadi satu barus kebawah beraturan
          
-        #layer 2 deltas (masuk ke context layer dari hidden layer)
-        layer_2_delta = layer_2_error*dtanh(layer_2)
+        #layer 2 deltas (masuk ke prev layer dari hidden layer)
+        # layer_2_delta = layer_2_error*dtanh(layer_2)
+        layer_2_delta = layer_2_error*dsigmoid(layer_2) #gd
     
-        #layer 1 delta (masuk ke hidden layer dari context layer)
-        layer_1_delta = np.dot(layer_2_delta,synapse_1.T) * dtanh(layer_1)
+        #layer 1 delta (masuk ke hidden layer dari prev layer)
+        # layer_1_delta = np.dot(layer_2_delta,synapse_1.T) * (layer_1)
+        layer_1_delta = np.dot(layer_2_delta,synapse_1.T) * (dsigmoid(layer_1))
     
         # calculate weight update
-        synapse_1_update = np.dot(np.atleast_2d(layer_1).T,(layer_2_delta))
-        # synapse_h_update = np.dot(np.atleast_2d(context_layer).T,(layer_1_delta))
-        synapse_0_update = np.dot(X.T,(layer_1_delta))
+        synapse_1_update += (alpha * np.dot(np.atleast_2d(layer_1).T,(layer_2_delta))) #gd
+        # synapse_1_update += np.dot(np.atleast_2d(layer_1).T,(layer_2_delta))
+        # synapse_h_update = np.dot(np.atleast_2d(prev_layer).T,(layer_1_delta))
+        synapse_0_update += (alpha * np.dot(X.T,(layer_1_delta)))
+        # synapse_0_update += np.dot(X.T,(layer_1_delta))
         
         #%% concatenate weight
         synapse_0_c = np.reshape(synapse_0,(-1,1))
@@ -196,6 +213,7 @@ for i in range(epoch):
         synapse_1_masuk = np.reshape(synapse_1_update,(1,-1))
         masuk = np.concatenate((synapse_0_masuk,synapse_1_masuk), axis=1)
         
+        '''
          #%% Unscented Kalman Filter without filterpy
         # X_ = masuk # myu
         X_ = w_concat_transpose
@@ -278,14 +296,15 @@ for i in range(epoch):
         synapse_0 = np.reshape(synapse_0,(input_dim,hidden_dim))
         # synapse_h = np.reshape(synapse_h,(hidden_dim,hidden_dim))
         synapse_1 = np.reshape(synapse_1,(hidden_dim,output_dim))
-        
+        '''
         #reset update
         synapse_0_update *= 0
         synapse_1_update *= 0
         # synapse_h_update *= 0
-        # update context layer
+        
+        # update prev layer
         layer_h_deltas = layer_1_delta
-        context_layer = layer_1
+        prev_layer = layer_1
     
     layer_2_value = np.reshape(layer_2_value,(-1,1))
     mse_epoch = mse(trainY,layer_2_value)
@@ -345,16 +364,16 @@ print("Training runtime : ", run_time)
 #%%  mari kita coba prediksiiiiiii
 
 batch_predict = testX.shape[0] # mengambil banyaknya baris (n) dari testX(n,m)
-context_layer_p = np.full((batch_predict,hidden_dim),0) # return full array yg isinya (0) sebesar dimensi [batch_predict x hidden_dim]
+prev_layer_p = np.full((batch_predict,hidden_dim),0) # return full array yg isinya (0) sebesar dimensi [batch_predict x hidden_dim]
 y_pred = [] # hasil output y prediksi
 index = 0
 mse_pred_all = []
 while(index+batch_predict<=testX.shape[0]):
     X = testX[index:index+batch_predict,:]
-    layer_1p = tanh(np.dot(X,synapse_0))
-    layer_2p = tanh(np.dot(layer_1p,synapse_1))
+    layer_1p = sigmoid(np.dot(X,synapse_0))
+    layer_2p = sigmoid(np.dot(layer_1p,synapse_1))
     y_pred.append(layer_2p)
-    # context_layer_p = layer_1p
+    # prev_layer_p = layer_1p
     index = index+batch_predict
     
 y_pred = denormalize(np.reshape(y_pred,(-1,1)), data['value'], (-1,1))

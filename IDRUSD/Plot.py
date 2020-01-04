@@ -30,8 +30,10 @@ Q_all = pd.concat([Q1,Q01,Q001,Q0001],axis=1)
 
 plt.plot(Q1,label='Q 1', color='r')
 plt.plot(Q01,label='Q 0.1', color='y')
-plt.plot(Q001,label='Q 0.01', color='g')
-plt.plot(Q0001,label='Q 0.001', color='b')
+# =============================================================================
+# plt.plot(Q001,label='Q 0.01', color='g')
+# plt.plot(Q0001,label='Q 0.001', color='b')
+# =============================================================================
 plt.title('Epoch percobaan Q')
 plt.xlabel('Epoch ke-')
 plt.ylabel('loss MSE training')

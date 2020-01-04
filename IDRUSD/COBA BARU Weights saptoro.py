@@ -242,6 +242,7 @@ for i in range(epoch):
     context_layer = np.full((batch_dim,hidden_dim),0) 
     layer_h_deltas = np.zeros(hidden_dim) # context layer (sebelumnya)
     sigmas_concat = []
+    D = []
     while(index+batch_dim<=trainX.shape[0]):        
         # input dan output
         X = trainX[index:index+batch_dim,:]
@@ -287,6 +288,7 @@ for i in range(epoch):
         #%% Unscented Kalman Filter without filterpy
         # X_ = masuk # myu
         X_ = w_concat_transpose
+        w = np.mean(X_)
         n = X_.size # julier versi masalah 'dimension of problem'
         L = X_.ndim #2
         beta = 2.
@@ -296,6 +298,13 @@ for i in range(epoch):
         # lambda_ = 1 # ngaruh, menurunkan dstat 3%
         lambda_ = alpha**2 * (n + kappa) - n # bisoi, dash, evryone
         
+        Pwk = (P+R)
+        wk_pred = w
+        wk1 = np.dot(w,w)
+        wk2 = tanh(cholesky(Pwk))
+        w_k = wk1 + (wk1*wk_pred) - wk2
+        layer_2_D = tanh(np.dot(X,w_k[0:(input_dim*hidden_dim),0]))
+                
         #%% SIGMA POINTS around mean
         U = cholesky((n + lambda_)*P) # sama dg np.sqrt
         # filterpy version dengan shape (121,60) karena dikali dg P!

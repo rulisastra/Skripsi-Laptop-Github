@@ -3,7 +3,6 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 from numpy.linalg import inv
-from numpy.linalg import pinv
 from scipy.linalg import cholesky
 from scipy.stats import norm
 from random import randrange
@@ -160,12 +159,10 @@ output_dim = 1
 # log mse tiap epoch
 mse_all = []
 rmse_all = []
-nilai = [1, .1, .01, .001]
 
 # alpha = 1# np.random.uniform(0,1) # labbe
+# alpha = 0.5 # dash
 alpha = 1e-3 # merwe
-# alpha = 2
-alphas = [1,0.1,0.01,0.001]
 # alpha = np.random.uniform(-4,1) # dash
 
 np.random.seed(1) # 1 =72%
@@ -181,8 +178,8 @@ synapse_h_update = np.zeros_like(synapse_h)
 
 # inisialisasi sebelum train
 jumlah_w = (input_dim*hidden_dim)+(hidden_dim*hidden_dim)+(hidden_dim*output_dim)
-Q = 1*np.identity(jumlah_w) #kovarian Noise process
-R = 1*np.identity(output_dim) #Kovarian Noise measurement(observasi) output_dim
+Q = 1*np.identity(jumlah_w) #kovarian Noise process dash (0.001)
+R = 1*np.identity(output_dim) #Kovarian Noise measurement(observasi) output_dim dash (0.9)
 P = 1*np.identity(jumlah_w) #kovarian estimasi vektor state
 
 #%% EVALUASI ====
@@ -232,10 +229,6 @@ epsilon = 0.98 # sbg forgetting factor berdasarkan dash 2014
 gamma = 1.98 # untuk minimize error karena fluktuasi (dash)
 start_time = time.time()
 scoring_train = []
-# =============================================================================
-# alpha_all = []
-# for alpha in alphas:
-# =============================================================================
 for i in range(epoch):
     index = 0
     layer_2_value = []
@@ -249,9 +242,10 @@ for i in range(epoch):
         index = index+batch_dim
 
         # bawa ke input ~> prev hidden
-        layer_1 = tanh(np.dot(X,synapse_0) + np.dot(context_layer,synapse_h))
+        layer_1 = tanh(np.dot(X,synapse_0) + np.dot(context_layer[-1],synapse_h))
     
         # hidden ~> output
+        
         layer_2 = tanh(np.dot(layer_1,synapse_1))
         layer_2_value.append(layer_2)
     
@@ -268,9 +262,9 @@ for i in range(epoch):
         layer_1_delta = (layer_1_error + np.dot(layer_h_deltas,synapse_h.T)) * dtanh(layer_1)
     
         # calculate weight update
-        synapse_1_update = np.dot(np.atleast_2d(layer_1).T,(layer_2_delta))
-        synapse_h_update = np.dot(np.atleast_2d(context_layer).T,(layer_1_delta))
-        synapse_0_update = np.dot(X.T,(layer_1_delta))
+        synapse_1_update -= np.dot(np.atleast_2d(layer_1).T,(layer_2_delta)) * alpha
+        synapse_h_update -= np.dot(np.atleast_2d(context_layer).T,(layer_1_delta)) * alpha
+        synapse_0_update -= np.dot(X.T,(layer_1_delta)) * alpha  
         
         #%% concatenate weight
         synapse_0_c = np.reshape(synapse_0,(-1,1))
@@ -284,7 +278,7 @@ for i in range(epoch):
         synapse_1_masuk = np.reshape(synapse_1_update,(1,-1))
         masuk = np.concatenate((synapse_0_masuk,synapse_h_masuk,synapse_1_masuk), axis=1)
         
-        #%% Unscented Kalman Filter without filterpy
+        #%%         
         # X_ = masuk # myu
         X_ = w_concat_transpose
         n = X_.size # julier versi masalah 'dimension of problem'
@@ -297,12 +291,11 @@ for i in range(epoch):
         lambda_ = alpha**2 * (n + kappa) - n # bisoi, dash, evryone
         
         #%% SIGMA POINTS around mean
-        U = cholesky((n + lambda_)*P) # sama dg np.sqrt
-        # filterpy version dengan shape (121,60) karena dikali dg P!
+        U = cholesky((n + lambda_)*P) # sama dg np.sqrt, filterpy version dengan shape (121,60) karena dikali dg P!
         
         sigmas = np.zeros((2*n+1, n))
         sigmas[0] = X_ # filterpy version dengan shape (121,60) karena dikali dg P!
-        # maka....
+
         for i in range(n): # gabung kebawah.. jadinya 121,60
             sigmas[i+1] = np.subtract(X_, -U[i])
             sigmas[n+i+1] = np.subtract(X_, U[i])
@@ -336,19 +329,15 @@ for i in range(epoch):
         for k in range(kmax):
             c = np.subtract(sigmas[k],Mz)
             Pz = Wc[k] * np.outer(c, c)
-            covv_z = np.cov(c,c) + R
         Pz += R # sebagai S
-        inv_covv_z = pinv(covv_z)
         
         # Cross covariance Weight sebelum dan weights sesudah unscented transform
         Pxz = np.zeros(sigmas.shape) # Tut
         for k in range(kmax):
             cc = np.subtract(X_,Mz) # sebagai T
             Pxz = Wc[k] * np.outer(cc, c)
-            covv_xz = np.cov(cc,c)
 
         # Kalman gain
-        Kk = np.dot(covv_xz,inv_covv_z)
         K1 = np.dot(Pxz,inv(P))
         Knorm = np.reshape(norm(K1[:,0],(-1,1)),(-1,1)) # tambahan doang
         K = np.reshape(K1[:,0],(-1,1))
@@ -366,12 +355,9 @@ for i in range(epoch):
         P += Q
         
         #%%
-        # innovation = np.subtract((Y-layer_2).sum(),len(layer_2_error))
-        innovation = ((Y-layer_2).sum()/len(layer_2_error))
-       
-        w_concat_new = w_concat + np.dot(K,innovation)
-        
-        # w_concat_new = np.dot(K,innovation)
+        innovation = ((Y-layer_2).sum()/len(layer_2_error))  
+        w_inov = np.dot(K,innovation)
+        w_concat_new = w_concat + w_inov
         
         #assign bobot
         synapse_0 = w_concat_new[0:(input_dim*hidden_dim),0]
@@ -399,12 +385,9 @@ for i in range(epoch):
     
     rmse_epoch = rmse(trainY,layer_2_value)
     rmse_all.append(rmse_epoch)
-        
-# =============================================================================
-# alpha_all.append(mse_all)
-# =============================================================================
     
-run_time = (time.time() - start_time) * 1000
+run_time = time.time() - start_time
+
 #%% seberapa besar lossnya???
 
 plt.plot(sigmas_1,label='sigma utama (mean)', marker='o', ls='-')
@@ -416,15 +399,6 @@ plt.ylabel('value')
 plt.legend()
 plt.show()
 
-# =============================================================================
-# plt.plot(mse_all, marker='x', label='Pembagian data 8:2')
-# plt.title('Loss (MSE)')
-# plt.xlabel('Epoch')
-# plt.ylabel('Loss (MSE)')
-# plt.legend()
-# plt.show()
-# =============================================================================
-
 plt.plot(mse_all, marker='x', label='Pembagian data 8:2')
 plt.title('Loss (MSE)')
 plt.xlabel('Epoch')
@@ -433,12 +407,10 @@ plt.legend()
 plt.gca().yaxis.set_major_formatter(mtick.FormatStrFormatter('%.6f'))
 plt.show()
 
-# saviing
-np.savetxt('loss_ukf_Q(0.001).csv', mse_all, delimiter=';', header='Q 0.001') 
+# np.savetxt('loss_ukf_LR(1).csv', mse_all, delimiter=';', header='R 1') 
 np.savetxt('loss_ukf.csv', mse_all, delimiter=';')
 np.savetxt('w_concat.csv', w_concat , delimiter=';', header='bobot')
 
-# plt.plot(trainY, c='r', marker='o', label='true') #testY[0:50] buat plotting coba liat di catatan
 plt.plot(layer_2_value, c='y', label='layer_2_value (predict)')
 plt.plot(trainY, c='r', label='trainY (sebenarnya)')
 plt.title('Prediksi Training')
@@ -470,6 +442,7 @@ print("Training mape : ", mape_pred)
 print("Training rmse : ", rmse_pred) 
 print("Training dstat : " , dstat_pred)
 print("Training runtime : ", run_time)
+
 #%% mari coba ============ PREDIKSI ===================
 
 batch_predict = testX.shape[0] # mengambil banyaknya baris (n) dari testX(n,m)
@@ -480,13 +453,13 @@ mse_pred_all = []
 scoring_test = []
 while(index+batch_predict<=testX.shape[0]):
     X = testX[index:index+batch_predict,:]
-    layer_1p = tanh(np.dot(X,synapse_0)+np.dot(context_layer_p,synapse_h))
+    layer_1p = tanh(np.dot(X,synapse_0)+np.dot(context_layer_p[-1],synapse_h))
     layer_2p = tanh(np.dot(layer_1p,synapse_1))
     y_pred.append(layer_2p)
     context_layer_p = layer_1p
     index = index+batch_predict
     
-# y_pred = np.reshape(y_pred,(-1,1)), data['value'], (-1,1)
+# y_pred = np.reshape(y_pred,(-1,1))
 y_pred = denormalize(np.reshape(y_pred,(-1,1)), data['value'], (-1,1))
 testYseb = testY.reshape(-1,1)
 testY = denormalize(testY, data['value'], (-1,1))
@@ -515,16 +488,7 @@ plt.ylabel('Harga')
 plt.legend()
 plt.show()
 
-# =============================================================================
-# plt.plot(mse_all, label='loss train')
-# plt.plot(mse_pred_all, label='loss test')
-# plt.title('Loss (MSE)')
-# plt.xlabel('Epoch')
-# plt.ylabel('Loss (MSE)')
-# plt.legend()
-# plt.gca().yaxis.set_major_formatter(mtick.FormatStrFormatter('%.6f'))
-# plt.show()
-# =============================================================================
+
 
 print('Kalman dim: ', K.ndim)
 print('Kalman size: ', K.size)

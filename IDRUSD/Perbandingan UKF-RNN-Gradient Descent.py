@@ -36,6 +36,14 @@ def tanh(x):
 def dtanh(x):
     return (1-tanh(x)**2)
 
+def sigmoid(x):
+    output = (1/(1+np.exp(-x)))
+    return output
+
+def dsigmoid(x):
+    outputd = (1/(1+np.exp(-x)))
+    return (outputd*(1-outputd))
+
 def normalize(data, scale):
     normalized = []
     for i in range(len(data)):
@@ -199,20 +207,20 @@ for i in range(epoch):
         index = index+batch_dim
 
         # bawa ke input ~> prev hidden
-        layer_1 = 1/(1+np.exp(-(tanh(np.dot(X,synapse_0) + np.dot(context_layer,synapse_h)))))
+        layer_1 = sigmoid((np.dot(X,synapse_0) + np.dot(context_layer,synapse_h)))
     
         # hidden ~> output
-        layer_2 = 1/(1+np.exp(-(tanh(np.dot(layer_1,synapse_1)))))
+        layer_2 = sigmoid(np.dot(layer_1,synapse_1))
         layer_2_value.append(layer_2)
     
         # hitung error output
         layer_2_error = layer_2 - Y[:,None] #problemnya, y diganti dr Y matrix
         
         # error di output layer -> layer 2 deltas (masuk ke context layer dari hidden layer)
-        layer_2_delta = dtanh(layer_2_error*(layer_2*(1-layer_2)))
+        layer_2_delta = dsigmoid(layer_2_error*(layer_2*(1-layer_2)))
         
         # error di hidden layer -> layer 1 delta (masuk ke hidden layer dari context layer)
-        layer_1_delta = dtanh(np.dot(layer_h_deltas,synapse_h.T) + np.dot(layer_2_delta,synapse_1.T)) * (layer_1*(1-layer_1))
+        layer_1_delta = dsigmoid(np.dot(layer_h_deltas,synapse_h.T) + np.dot(layer_2_delta,synapse_1.T)) * (layer_1*(1-layer_1))
     
         # calculate weight update
         synapse_1_update = np.dot(np.atleast_2d(layer_1).T,(layer_2_delta)) * alpha
@@ -390,8 +398,8 @@ y_pred = [] # hasil akhir Y prediksi
 index = 0
 while(index+batch_predict<=testX.shape[0]):
     X = testX[index:index+batch_predict,:]
-    layer_1p = tanh(np.dot(X,synapse_0)+np.dot(context_layer_p,synapse_h))
-    layer_2p = tanh(np.dot(layer_1p,synapse_1))
+    layer_1p = sigmoid(np.dot(X,synapse_0)+np.dot(context_layer_p,synapse_h))
+    layer_2p = sigmoid(np.dot(layer_1p,synapse_1))
     y_pred.append(layer_2p)
     context_layer_p = layer_1p
     index = index+batch_predict
@@ -422,15 +430,7 @@ plt.ylabel('Harga')
 plt.legend()
 plt.show()
 
-# plt.scatter(sigmas[0], color='r', marker ='x', ls=None)
-# plt.scatter(sigmas[1:91],sigmas[92:182])
-plt.plot(sigmas[1:91], ls=':')
-plt.plot(sigmas[92:182], ls=':')
-plt.plot(sigmas[0,:], color='r', marker ='o')
-plt.xlabel('sigmas ke-')
-plt.ylabel('value')
-plt.title('SIGMAS semua')
-plt.show()
+
 
 print('Kalman dim: ', K.ndim)
 print('Kalman size: ', K.size)
