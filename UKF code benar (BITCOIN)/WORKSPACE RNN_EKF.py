@@ -6,6 +6,7 @@ from numpy.linalg import inv
 from scipy.linalg import cholesky
 
 #%% persiapan data
+#USDIDR 2009_2019 45%
 data = pd.read_csv('USDIDR 2009_2019.csv',
                     usecols=[1],
                     engine='python',
@@ -241,6 +242,8 @@ plt.ylabel('Loss (MSE)')
 plt.legend()
 plt.show()
 
+
+
 #%%  mari kita coba prediksiiiiiii
 
 batch_predict = testX.shape[0] # mengambil banyaknya baris (n) dari testX(n,m)
@@ -265,11 +268,14 @@ mape_pred = mape(testY,y_pred)
 dstat_pred = dstat(testY,y_pred)
 scoring = [mse_pred,rmse_pred,mae_pred,mape_pred,dstat_pred,run_time]
 
-plt.plot(testY, label='true') #testY[0:50] buat plotting coba liat di catatan
-plt.plot(y_pred, label='prediction')
-plt.title('RNN-UKF')
-plt.legend()
-plt.show()
+# =============================================================================
+# # y_pred = normalize(y_pred, (-1,1))
+# plt.plot(testY, label='true') #testY[0:50] buat plotting coba liat di catatan
+# plt.plot(y_pred, label='prediction')
+# plt.title('RNN-UKF')
+# plt.legend()
+# plt.show()
+# =============================================================================
 
 print(scoring)
 print("mse : " , mse_pred)

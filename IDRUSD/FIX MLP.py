@@ -149,9 +149,7 @@ def mape(x,y):
     return mape
 
 def dstat(x,y):
-    dstat = 
-    
-    
+    dstat = 0
     n = len(y)
     for i in range(n-1):
         if(((x[i+1]-y[i])*(y[i+1]-y[i]))>0):

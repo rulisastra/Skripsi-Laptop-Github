@@ -6,7 +6,7 @@ from numpy.linalg import inv
 from numpy.linalg import pinv
 from scipy.linalg import cholesky
 from scipy.stats import norm
-from random import randrange
+# from random import randrange
 import matplotlib.ticker as mtick
 
 #%% persiapan data
@@ -83,14 +83,16 @@ def denormalize(normalized, data, scale):
         denormalized.append(a)
     return np.array(denormalized)
 
-def norm(x, scale):
-    normalized = []
-    for i in range(len(x)):
-        a = (min(scale))+(x[i]-min(x))*(max(scale)-min(scale))/(max(x)-min(x))
-        normalized.append(a)
-    return np.array(normalized)
-    scale = (-1,1)
-    normalized = normalize(x,scale)
+# =============================================================================
+# def norm(x, scale):
+#     normalized = []
+#     for i in range(len(x)):
+#         a = (min(scale))+(x[i]-min(x))*(max(scale)-min(scale))/(max(x)-min(x))
+#         normalized.append(a)
+#     return np.array(normalized)
+#     scale = (-1,1)
+#     normalized = normalize(x,scale)
+# =============================================================================
 
 # normalisasi dengan data satu kolom kebawah
 data_raw = np.reshape(normalize(data['value'],(-1,1)),(-1,1))
@@ -363,12 +365,12 @@ for i in range(epoch):
         
         # P = P - np.dot(Pz,K) # np.dot(Pz,K.T))
         P = P - np.dot(K,np.dot(Pz.sum(),K.T)) 
-        P += Q
+        P += Q # agar loss stabil, updatenya ditambah P
         
         #%%
         # innovation = np.subtract((Y-layer_2).sum(),len(layer_2_error))
         innovation = ((Y-layer_2).sum()/len(layer_2_error))
-       
+        
         w_concat_new = w_concat + np.dot(K,innovation)
         
         # w_concat_new = np.dot(K,innovation)
@@ -469,7 +471,7 @@ print("Training mse : " , mse_pred)
 print("Training mape : ", mape_pred) 
 print("Training rmse : ", rmse_pred) 
 print("Training dstat : " , dstat_pred)
-print("Training runtime : ", run_time)
+print("Training runtime RNNUKF : ", run_time)
 #%% mari coba ============ PREDIKSI ===================
 
 batch_predict = testX.shape[0] # mengambil banyaknya baris (n) dari testX(n,m)
@@ -486,7 +488,11 @@ while(index+batch_predict<=testX.shape[0]):
     context_layer_p = layer_1p
     index = index+batch_predict
     
-# y_pred = np.reshape(y_pred,(-1,1)), data['value'], (-1,1)
+# =============================================================================
+# y_pred = np.reshape(y_pred,(-1,1))
+# testY = testY
+# =============================================================================
+
 y_pred = denormalize(np.reshape(y_pred,(-1,1)), data['value'], (-1,1))
 testYseb = testY.reshape(-1,1)
 testY = denormalize(testY, data['value'], (-1,1))
@@ -509,7 +515,7 @@ plt.show()
 
 plt.plot(testY[0:100], label='true') #testY[0:50] buat plotting coba liat di catatan
 plt.plot(y_pred[0:100], label='prediction')
-plt.title('HASIL UJI dengan metode RNN-UKF 100 data awal')
+plt.title('Prediksi Mata Uang')
 plt.xlabel('Data ke-')
 plt.ylabel('Harga')
 plt.legend()
@@ -536,7 +542,7 @@ print("mse : " , mse_pred)
 print("mape : ", mape_pred) 
 print("rmse : ", rmse_pred) 
 print("dstat : " , dstat_pred)
-print("runtime : ", run_time)
+print("runtime RNNUKF : ", run_time)
 
 #%%
 np.savetxt('bobot_input.csv', synapse_0, delimiter=',')
@@ -544,3 +550,6 @@ np.savetxt('bobot_hidden.csv', synapse_h, delimiter=',')
 np.savetxt('bobot_output.csv', synapse_1, delimiter=',')
 np.savetxt('loss_ukf_uji.csv', mse_pred_all, delimiter=';')
 np.savetxt('MLP.csv', y_pred, delimiter=';')
+
+harga_sebenarnya = data[1048:1052]
+harga_prediksi = y_pred[-3:-1]

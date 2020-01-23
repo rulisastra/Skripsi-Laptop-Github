@@ -5,7 +5,10 @@ import time
 from numpy.linalg import inv
 
 #persiapan data
-data = pd.read_csv('IDRUSD.csv',
+#USDIDR EKF perbandingan.csv
+#data
+# data 2015-2018
+data = pd.read_csv('data.csv',
                     usecols=[1],
                     engine='python',
                     delimiter=',',
